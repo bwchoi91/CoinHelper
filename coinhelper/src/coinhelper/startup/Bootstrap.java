@@ -33,8 +33,6 @@ public class Bootstrap
 			public void run() {
 				try {
 					
-					
-					
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
