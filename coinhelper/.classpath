@@ -30,5 +30,16 @@
 	<classpathentry kind="lib" path="/coinhelper-env/lib/spring-webmvc-4.0.3.RELEASE.jar"/>
 	<classpathentry kind="lib" path="/coinhelper-env/lib/commons-lang3-3.2.1.jar"/>
 	<classpathentry kind="lib" path="/coinhelper-env/lib/commons-logging-1.2.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/lombok-1.14.8.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/guava-15.0.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/httpclient-4.5.13.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/httpcore-4.4.13.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/jackson-annotations-2.12.3.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/jackson-core-2.12.3.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/jackson-databind-2.12.3.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/log4j-1.2.15.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/log4j-api-2.5.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/log4j-core-2.5.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/log4j-slf4j-impl-2.5.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
