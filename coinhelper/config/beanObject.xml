@@ -9,8 +9,8 @@ xmlns:context="http://www.springframework.org/schema/context"
 	<context:annotation-config/>
 	<!-- <bean id="ioConLogData" class="loghelper.inMemory.IOConLogData" init-method="init" /> -->
 	
-	<!-- <bean id="functionService" class="coinhelper.service.FunctionService" />
-	<bean id="baseService" class="coinhelper.service.BaseService" />
-	<bean id="dataService" class="coinhelper.service.DataService" /> -->
+	<bean id="JsonParserList" class="coinhelper.support.JsonParserList" init-method="init" />
+	
+	<bean id="DataService" class="coinhelper.service.DataService" />
 	
 </beans>
