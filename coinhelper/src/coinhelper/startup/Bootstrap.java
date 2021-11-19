@@ -8,7 +8,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import coinhelper.config.BeanObjectConfig;
-import coinhelper.service.DataService;
 
 public class Bootstrap 
 {
@@ -33,7 +32,6 @@ public class Bootstrap
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					DataService.get().setCoinListMap();
 					
 				} catch (Exception e) {
 					e.printStackTrace();
