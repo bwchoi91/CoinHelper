@@ -10,7 +10,6 @@ xmlns:context="http://www.springframework.org/schema/context"
 	<!-- <bean id="ioConLogData" class="loghelper.inMemory.IOConLogData" init-method="init" /> -->
 	
 	<bean id="JsonParserList" class="coinhelper.support.JsonParserList" init-method="init" />
-	
 	<bean id="DataService" class="coinhelper.service.DataService" />
 	
 </beans>

@@ -4,16 +4,14 @@
 	to make all loggers asynchronous. -->
 <!-- -Dlog4j.configurationFile=config\log4j2.xml -->
 
-<Configuration status="WARN" monitorInterval="60"
-	packages="kr.co.aim.eos.service.logview.appender.logging">
-	
+<Configuration status="WARN" monitorInterval="60" packages="coinhelper.log">
 	<Appenders>
 		<Console name="STDOUT" target="SYSTEM_OUT">
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
+			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%c{1}][%M] - %m%n" />
 		</Console>
 		
-		<UserRollingFile name="ALL" fileName="D:/log/server/all/${sys:eos.name}_all.log"  filePattern="D:/log/server/all/${sys:eos.name}_all.%i.log" immediateFlush="false">
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
+		<UserRollingFile name="ALL" fileName="D:/MyProject_Code/log/all.log"  filePattern="D:/MyProject_Code/log/all.%i.log" immediateFlush="false">
+			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] - %m%n" />
 			<Policies>
 				<OnStartupTriggeringPolicy /> 
 				<SizeBasedTriggeringPolicy size="30MB" />
@@ -21,136 +19,15 @@
 			<DefaultRolloverStrategy max="300" />
 		</UserRollingFile>
 		
-		<UserRollingFile name="TRACE" fileName="D:/log/server/${sys:eos.name}_trace.log"  filePattern="D:/log/server/${sys:eos.name}_trace.%i.log" immediateFlush="false">
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
-			<Policies>
-				<OnStartupTriggeringPolicy /> 			
-				<SizeBasedTriggeringPolicy size="10MB" />
-			</Policies>
-			<DefaultRolloverStrategy max="200" />
-		</UserRollingFile>
-		
-		<UserRollingFile name="ERROR" fileName="D:/log/server/error/${sys:eos.name}_error.log"  filePattern="D:/log/server/error/${sys:eos.name}_error.%i.log" immediateFlush="false">
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
-			<Policies>
-				<OnStartupTriggeringPolicy /> 			
-				<SizeBasedTriggeringPolicy size="10MB" />
-			</Policies>
-			<DefaultRolloverStrategy max="200" />
-		</UserRollingFile>
-		
-		<UserRollingFile name="ROBOT" fileName="D:/log/server/robot/${sys:eos.name}_robot.log"  filePattern="D:/log/server/robot/${sys:eos.name}_robot.%i.log" immediateFlush="false" > <!-- immediateFlush="false" append="false" bufferSize="8192" -->
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
-			<Policies>
-				<OnStartupTriggeringPolicy /> 			
-				<SizeBasedTriggeringPolicy size="10MB" />
-			</Policies>
-			<DefaultRolloverStrategy max="200" />
-		</UserRollingFile>
-		
-		<UserRollingFile name="TIBRV" fileName="D:/log/server/mes/${sys:eos.name}_mes.log"  filePattern="D:/log/server/mes/${sys:eos.name}_mes.%i.log" immediateFlush="false">
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
-			<Policies>
-				<OnStartupTriggeringPolicy /> 			
-				<SizeBasedTriggeringPolicy size="10MB" />
-			</Policies>
-			<DefaultRolloverStrategy max="200" />
-		</UserRollingFile>
-		
-		<UserRollingFile name="DFSTIBRV" fileName="D:/log/server/mes/${sys:eos.name}_dfs.log"  filePattern="D:/log/server/mes/${sys:eos.name}_dfs.%i.log" immediateFlush="false">
-			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%t] [%c{1}][%M] - %m%n" />
-			<Policies>
-				<OnStartupTriggeringPolicy /> 			
-				<SizeBasedTriggeringPolicy size="10MB" />
-			</Policies>
-			<DefaultRolloverStrategy max="200" />
-		</UserRollingFile>
-
 		<Async name="AsyncALL" buffersize="1048576" includeLocation="TRUE">
 			<AppenderRef ref="ALL" />
-		</Async>
-
-		<Async name="AsyncROBOT" buffersize="1048576" includeLocation="TRUE">
-			<AppenderRef ref="ROBOT" />
-		</Async>
-
-		<Async name="AsyncERROR" buffersize="1048576" includeLocation="TRUE">
-			<AppenderRef ref="ERROR" />
-		</Async>
-
-		<Async name="AsyncTRACE" buffersize="1048576" includeLocation="TRUE">
-			<AppenderRef ref="TRACE" />
-		</Async>
-
-		<Async name="AsyncTIBRV" buffersize="1048576" includeLocation="TRUE">
-			<AppenderRef ref="TIBRV" />
-		</Async>
-		
-		<Async name="AsyncDFSTIBRV" buffersize="1048576" includeLocation="TRUE">
-			<AppenderRef ref="DFSTIBRV" />
 		</Async>
 	</Appenders>
 
 	<Loggers>
-		<logger name="org.hibernate.engine.jdbc.internal.JdbcCoordinatorImpl" level="error" additivity="false" includeLocation="true">
-			<AppenderRef ref="AsyncERROR" />
-			<AppenderRef ref="AsyncALL" />
-		</logger>
-		
-		<logger name="kr.aimframework.core.data.transaction.ThreadLocalTransactionManager" level="error" additivity="false" includeLocation="true">
-			<AppenderRef ref="AsyncERROR" />
-			<AppenderRef ref="AsyncALL" />
-		</logger>
-	
-		<logger name="kr.co.aim.eos.robotcontrol" level="debug" additivity="false" includeLocation="true">
-			<AppenderRef ref="AsyncALL" level="error"/>
-			<AppenderRef ref="AsyncERROR" level="error"/>
-			<AppenderRef ref="AsyncROBOT" />
-		</logger>
-		
-		<logger name="org.springframework.jdbc.core.BeanPropertyRowMapper" level="error" additivity="false" includeLocation="true">
-			<AppenderRef ref="AsyncERROR" />
-			<AppenderRef ref="AsyncALL" />
-		</logger>
-		
-		<!-- orm.jpa.JpaTransactionManager , springframework.beans.factory.support.DefaultListableBeanFactory , aim.nanoflow.core.activity.Activity -->
-		<logger name="org.springframework.orm.jpa.JpaTransactionManager" level="error" additivity="false">
-			<AppenderRef ref="AsyncERROR" />
-		</logger>
-
-		<logger name="org.springframework.beans.factory.support.DefaultListableBeanFactory" level="error" additivity="false">
-			<AppenderRef ref="AsyncERROR" />
-		</logger>
-
-		<logger name="kr.co.aim.nanoflow.core.activity" level="info" additivity="false">
-			<AppenderRef ref="AsyncERROR" />
-			<AppenderRef ref="AsyncALL" level="info" />
-		</logger>
-		
-		<logger name="kr.co.aim.eos.proxy.tibrv.MESProxy" level="debug" additivity="true" includeLocation="true">
-			<AppenderRef ref="AsyncTIBRV"  />
-		</logger>
-		
-		<logger name="kr.co.aim.eos.proxy.tibrv.TIBProxy" level="debug" additivity="true" includeLocation="true">
-			<AppenderRef ref="AsyncDFSTIBRV"  />
-		</logger>
-		
-		<logger name="org.springframework.jdbc" level="info" additivity="true" includeLocation="true">
-		</logger>
-		
-		<!--kr.co.aim.eas.framework.boot.startup.ApplicationServer-->
-		<logger name="kr.co.aim.eas.framework.boot.startup.ApplicationServer" level="debug" additivity="false">
-			<AppenderRef ref="AsyncERROR" level="error"/>
-			<AppenderRef ref="AsyncTRACE" level="info" />
-			<AppenderRef ref="AsyncALL" level="debug" />
-		</logger>
-		
 		<Root level="debug" includeLocation="true">
 			<AppenderRef ref="STDOUT"/>
 			<AppenderRef ref="AsyncALL" />
-			<AppenderRef ref="AsyncERROR" level="error" />
-			<AppenderRef ref="AsyncTRACE" level="info" />
 		</Root>
 	</Loggers>
-
 </Configuration>
