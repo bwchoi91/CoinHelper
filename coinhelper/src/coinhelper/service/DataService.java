@@ -14,10 +14,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import coinhelper.object.CandleMin;
 import coinhelper.object.Coin;
 import coinhelper.support.JsonParserList;
 import coinhelper.support.ServiceUrlList;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class DataService {
@@ -30,6 +32,7 @@ public class DataService {
 	public JsonParserList jsonParserList;
 	
 	public Map<String, Coin> coinListMap = Maps.newConcurrentMap();
+	public Map<String, List<CandleMin>> candleMinMap = Maps.newConcurrentMap();
 	
 	public DataService()
 	{
@@ -72,15 +75,49 @@ public class DataService {
 	        		{
 	        			coinListMap.put(coin.getMarket(), coin);
 	        			log.info(String.format("Put Complete. market=%s", coin.getMarket()));
+	        			
+	        			this.setCandleMinMap(coin.getMarket(), 3, 10);
 	        		}
 	        	}
 	        }
-
-	        
 		}
 		catch(Exception e)
 		{
-			log.error(String.format("SetCoinListMap Error.\n%s", e.toString()));
+			log.error(String.format("%s Error.\n%s", this.getClass().getEnclosingMethod().getName(), e.toString()));
+		}
+	}
+	
+	public void setCandleMinMap(String market, int min, int count)
+	{
+		try
+		{
+			HttpClient client = HttpClientBuilder.create().build();
+			
+	        HttpGet request = new HttpGet(ServiceUrlList.getURL_CANDLE_MIN(min, market, count));
+	        request.setHeader("Accept", "application/json");
+	
+	        HttpResponse response = client.execute(request);
+	        HttpEntity entity = response.getEntity();
+	        
+			Object object = this.jsonParserList.stringToObject_candleMinParser(new String(EntityUtils.toByteArray(entity), "UTF-8"));
+	        
+	        List<CandleMin> candleMinList = (List<CandleMin>) object;
+	        
+	        if(candleMinList.size() > 0)
+	        {
+	        	candleMinList.get(0).getMarket();
+        		candleMinMap.put(candleMinList.get(0).getMarket(), candleMinList);
+        		
+        		//log
+        		for(CandleMin candleMin : candleMinList)
+        		{
+        			log.info(String.format("time=%s, openPrice=%s, highPrice=%s, lowPrice=%s, tradePrice=%s, min=%s", candleMin.getCandleDateTimeKST(), candleMin.getOpeningPrice(), candleMin.getHighPrice(), candleMin.getLowPrice(), candleMin.getTradePrice(), candleMin.getUnit()));
+        		}
+	        }
+		}
+		catch(Exception e)
+		{
+			log.info(String.format("%s Error.\n%s", this.getClass().getEnclosingMethod().getName(), e.toString()));
 		}
 	}
 }
