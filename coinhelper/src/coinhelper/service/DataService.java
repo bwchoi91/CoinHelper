@@ -2,10 +2,13 @@ package coinhelper.service;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+
+import lombok.Getter;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.DateUtils;
@@ -39,11 +42,13 @@ public class DataService {
 	public JsonParserList jsonParserList;
 	
 	public Map<String, Coin> coinListMap = Maps.newConcurrentMap();
-	public Map<String, List<CandleMin>> candleMinMap = Maps.newConcurrentMap();
 	
 	public List<String> enableCoinList = Lists.newArrayList();
 	
-	public Thread tickerMapRefreshThread;
+	@Getter
+	public Thread coinServiceThread;
+	
+	public Map<String, Thread> candleMinThreadMap = Maps.newConcurrentMap();
 	
 	public DataService()
 	{
@@ -53,6 +58,26 @@ public class DataService {
 	public static DataService get()
 	{
 		return dataService;
+	}
+	
+	
+	public void setInitData()
+	{
+		for(String market : enableCoinList)
+		{
+			Thread thread = new Thread(new CandleMinRefreshThread(market, 3, 200));
+			thread.setName(String.format("%s_CandleMinThread", market));
+			thread.setDaemon(true);
+			
+			candleMinThreadMap.put(market, thread);
+		}
+    	
+    	//Thread Setting
+    	coinServiceThread = new Thread(new CoinServiceThread(3));
+    	coinServiceThread.setName("CoinRefreshThread");
+    	coinServiceThread.setDaemon(false);
+    	//Start
+    	coinServiceThread.start();
 	}
 	
 	public void setCoinListMap()
@@ -88,17 +113,10 @@ public class DataService {
 	        		if(StringUtils.contains(coin.getMarket(), "KRW-"))
 	        		{
 	        			enableCoinList.add(coin.getMarket());
-
 	        		}
 	        	}
 
-	        	//Thread Setting
-	        	tickerMapRefreshThread = new Thread(new TickerRefreshThread(3));
-	        	tickerMapRefreshThread.setName("TickerRefreshThread");
-	        	tickerMapRefreshThread.setDaemon(false);
-	        	//Start
-	        	tickerMapRefreshThread.start();
-	        	
+	        	this.setInitData();
 	        }
 		}
 		catch(Exception e)
@@ -125,14 +143,15 @@ public class DataService {
 	        
 	        if(candleMinList.size() > 0)
 	        {
-	        	candleMinList.get(0).getMarket();
-        		candleMinMap.put(candleMinList.get(0).getMarket(), candleMinList);
-        		
-        		//log
-        		for(CandleMin candleMin : candleMinList)
+        		Coin coin = coinListMap.get(candleMinList.get(0).getMarket());
+        		if(coin == null)
         		{
-        			log.info(String.format("time=%s, openPrice=%s, highPrice=%s, lowPrice=%s, tradePrice=%s, min=%s", candleMin.getCandleDateTimeKST(), candleMin.getOpeningPrice(), candleMin.getHighPrice(), candleMin.getLowPrice(), candleMin.getTradePrice(), candleMin.getUnit()));
+        			log.error(String.format("Cannot found Coin. market=%s", coin.getMarket()));
         		}
+        		
+        		coin.addCandleMinList(candleMinList);
+        		
+        		log.info(String.format("CandleMinList Add Complete. market=%s", market));
 	        }
 		}
 		catch(Exception e)
@@ -177,7 +196,7 @@ public class DataService {
 		        	coin.setCurrentTradePrice(price);
 		        	if(isPush)
 		        	{
-		        		coin.pushPrice(price);
+		        		coin.addPriceList(price);
 		        	}
 		        	
 //		        	log.info(String.format("%s : %.4f", coin.getMarket(), coin.getCurrentTradePrice()));
@@ -190,7 +209,7 @@ public class DataService {
 		}
 	}
 	
-	public void bwchoiTest()
+/*	public void bwchoiTest()
 	{
 		for(String market : enableCoinList)
 		{
@@ -201,34 +220,71 @@ public class DataService {
 				continue;
 			}
 			StringBuilder sb = new StringBuilder();
-			sb.append(coin.getMarket()+"\n");
+			sb.append(coin.getMarket()+" : ");
 			
-			enableCoinList.
+			for(int i=coin.getPriceList().size()-1; i >= 0; i--)
+			{
+				sb.append(coin.getPriceList().get(i) + " ");
+			}
+			
+			log.info(sb);
 		}
-	}
+	}*/
 	
-	public class TickerRefreshThread implements Runnable
+	public class CoinServiceThread implements Runnable
 	{
-		public int pushTime = 1;
-		public int pushCount = 0;
+		public int cycleTime = 1;
+		public int cycleCount = 0;
 		
-		public TickerRefreshThread(int pushTime)
+		public CoinServiceThread(int cycleTime)
 		{
-			if(pushTime > 0)
-				this.pushTime = pushTime;
+			if(cycleTime > 0)
+			{
+				this.cycleTime = cycleTime;
+				this.cycleCount = cycleTime;
+			}
 		}
 		
-		public void setCoinData()
+		/**
+		 * Ticker
+		 */
+		public void setTickerData()
 		{
-			if(pushTime > pushCount)
+			if(cycleTime > cycleCount)
 			{
 				setTickerMap(enableCoinList, false);
-				pushCount++;
+				cycleCount++;
 			}
 			else
 			{
 				setTickerMap(enableCoinList, true);
-				pushCount = 0;
+				cycleCount = 0;
+			}
+		}
+		
+		public void setCandleMin()
+		{
+			String errMaeket = StringUtils.EMPTY;
+			try
+			{
+				for(String market : enableCoinList)
+				{
+					errMaeket = market;
+					if(candleMinThreadMap.get(market).isAlive() == false)
+					{
+						candleMinThreadMap.get(market).start();
+					}
+					else
+					{
+						candleMinThreadMap.get(market).run();
+					}
+					
+					Thread.sleep(100);
+				}
+			}
+			catch(Exception e)
+			{
+				log.info(String.format("SetCandleMin Error. market=%s, %s", errMaeket, e.getStackTrace()));
 			}
 		}
 		
@@ -246,20 +302,52 @@ public class DataService {
 					
 					/* Set Data Function List Start*/
 					
-					setCoinData();
-
+					setCandleMin();
+//					setTickerData();	//Coin Data Refresh
+					
 					/* Set Data Function List End*/
 					
 					compareTime = Calendar.getInstance().getTimeInMillis() - startTime;
-					if(compareTime < 1000)
-						Thread.sleep(1000 - compareTime);
-					else
-						Thread.sleep(1000);
+					//bwchoi 임시 주석
+//					if(compareTime < 1000)
+//						Thread.sleep(1000 - compareTime);
+//					else
+//						Thread.sleep(1000);
+					
+					//bwchoi Test
+					Thread.sleep(10000);
 				}
 				catch(Exception e)
 				{
-					log.info(String.format("tickerRefreshThread Interrupt.\n%s", e.toString()));
+					log.info(String.format("CoinServiceThread Interrupt.\n%s", e.toString()));
 				}
+			}
+		}
+	}
+	
+	public class CandleMinRefreshThread implements Runnable
+	{
+		public String market;
+		public int min;
+		public int count;
+		
+		public CandleMinRefreshThread(String market, int min, int count)
+		{
+			this.market = market;
+			this.min = min;
+			this.count = count;
+		}
+		
+		@Override
+		public void run()
+		{
+			try
+			{
+				setCandleMinMap(market, min, count);
+			}
+			catch(Exception e)
+			{
+				log.info(String.format("CandleMinRefreshThread Interrupt. market=%s min=%s count=%s \n%s", this.market, this.min, this.count, e.toString()));
 			}
 		}
 	}

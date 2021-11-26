@@ -1,11 +1,13 @@
 package coinhelper.object;
 
 import java.beans.ConstructorProperties;
+import java.util.List;
 import java.util.Queue;
 
 import org.apache.commons.lang3.StringUtils;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Queues;
 
 import lombok.Getter;
@@ -22,8 +24,11 @@ public class Coin {
 	
 	//Ticker
 	public float currentTradePrice;
-	public Queue<Float> priceQueue;
+	public List<Float> priceList = Lists.newArrayList();
 	public int queueSize;
+	
+	//Candle
+	public List<CandleMin> candleMinList = Lists.newArrayList();
 	
 	@ConstructorProperties({"market", "korean_name", "english_name"})
 	public Coin(String market, String koreanName, String englishName)
@@ -32,18 +37,42 @@ public class Coin {
 		this.korean_name = koreanName;
 		this.english_name = englishName;
 		
-		//Default
-		priceQueue = Queues.newConcurrentLinkedQueue();
+		//Ticker Default
 		queueSize = 20;
 	}
 	
-	public void pushPrice(float price)
+	/**
+	 * Ticker
+	 * @param price
+	 */
+	public void addPriceList(float price)
 	{
-		priceQueue.add(price);
+		priceList.add(price);
 		
-		if(priceQueue.size() > queueSize)
+		if(priceList.size() > queueSize)
 		{
-			priceQueue.peek();
+			priceList.remove(0);
 		}
 	}
+	
+	/**
+	 * Ticker
+	 */
+	public void clearPriceList()
+	{
+		priceList.clear();
+	}
+	
+	/**
+	 * CandleMin
+	 * @param candleMinList
+	 */
+	public void addCandleMinList(List<CandleMin> candleMinList)
+	{
+		if(candleMinList.size() > 0)
+			candleMinList.clear();
+		
+		candleMinList.addAll(candleMinList);
+	}
+	
 }

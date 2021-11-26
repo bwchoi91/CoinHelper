@@ -34,6 +34,8 @@ public class Bootstrap
 			public void run() {
 				try {
 					DataService.get().setCoinListMap();
+					DataService.get().getCoinServiceThread().join();
+					
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
