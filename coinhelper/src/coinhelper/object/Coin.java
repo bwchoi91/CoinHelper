@@ -69,10 +69,10 @@ public class Coin {
 	 */
 	public void addCandleMinList(List<CandleMin> candleMinList)
 	{
-		if(candleMinList.size() > 0)
+		if(this.candleMinList.size() > 0)
 			candleMinList.clear();
 		
-		candleMinList.addAll(candleMinList);
+		this.candleMinList.addAll(candleMinList);
 	}
 	
 }

@@ -1,17 +1,12 @@
 package coinhelper.service;
 
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 
 import lombok.Getter;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -47,9 +42,7 @@ public class DataService {
 	
 	@Getter
 	public Thread coinServiceThread;
-	
-	public Map<String, Thread> candleMinThreadMap = Maps.newConcurrentMap();
-	
+
 	public DataService()
 	{
 		dataService = this;
@@ -63,14 +56,15 @@ public class DataService {
 	
 	public void setInitData()
 	{
-		for(String market : enableCoinList)
+		/*for(String market : enableCoinList)
 		{
 			Thread thread = new Thread(new CandleMinRefreshThread(market, 3, 200));
 			thread.setName(String.format("%s_CandleMinThread", market));
 			thread.setDaemon(true);
+			thread.start();
 			
-			candleMinThreadMap.put(market, thread);
-		}
+			break;
+		}*/
     	
     	//Thread Setting
     	coinServiceThread = new Thread(new CoinServiceThread(3));
@@ -136,7 +130,7 @@ public class DataService {
 	        
 	        HttpResponse response = client.execute(request);
 	        HttpEntity entity = response.getEntity();
-	        
+
 			Object object = this.jsonParserList.stringToObject_candleMinParser(new String(EntityUtils.toByteArray(entity), "UTF-8"));
 	        
 	        List<CandleMin> candleMinList = (List<CandleMin>) object;
@@ -151,7 +145,7 @@ public class DataService {
         		
         		coin.addCandleMinList(candleMinList);
         		
-        		log.info(String.format("CandleMinList Add Complete. market=%s", market));
+//        		log.info(String.format("CandleMinList Add Complete. market=%s", market));
 	        }
 		}
 		catch(Exception e)
@@ -209,27 +203,228 @@ public class DataService {
 		}
 	}
 	
-/*	public void bwchoiTest()
+	public void bwchoiTest()
 	{
+		log.info("Test 1 Start");
+		List<CandleMin> resultCandleMinList = Lists.newArrayList();
+		//3분봉 리스트로 조건 체크 해보기
 		for(String market : enableCoinList)
 		{
-			Coin coin = coinListMap.get(market);
-			if(coin == null)
-			{
-				log.error(String.format("Cannot found Coin. market=%s", market));
-				continue;
-			}
-			StringBuilder sb = new StringBuilder();
-			sb.append(coin.getMarket()+" : ");
+			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
+
+			/* 조건
+			 * 1. 이전 시간보다 종가가 큰 경우(상승봉) 
+			 * 2. 1의 조건이 3번 연속인 경우
+			 * */
+			float tradePrice = 0;
+			int[] testResult = {0, 0, 0};	//0 : false(not test) 1 : true(test true)
 			
-			for(int i=coin.getPriceList().size()-1; i >= 0; i--)
+			for(int i = candleMinList.size()-1; i >= 0; i--)
 			{
-				sb.append(coin.getPriceList().get(i) + " ");
-			}
+				CandleMin candle = candleMinList.get(i);
+				if(candle == null)
+				{
+					log.info(String.format("Cannot found CandleMin. position=%s", i));
+					continue;
+				}
+				
+				//처음 한바퀴
+				if(tradePrice <= 0)
+				{
+					tradePrice = candle.getTradePrice();
+					continue;
+				}
+				//조건이 다 맞춰져 있으면 해당 Candle 출력
+				if(testResult[0] == 1 && testResult[1] == 1 && testResult[2] == 1)
+				{
+					resultCandleMinList.add(candle);
+					for(int count = 0; count < testResult.length; count++)
+					{
+						testResult[count] = 0;
+					}
+				}
 			
-			log.info(sb);
+				if(candle.getTradePrice() > tradePrice)
+				{
+					for(int count = 0; count < testResult.length; count++)
+					{
+						if(testResult[count] == 0)
+						{
+							testResult[count] = 1;
+							break;
+						}
+					}
+				}
+				else	//조건 실패시 result 초기화
+				{
+					for(int count = 0; count < testResult.length; count++)
+					{
+						testResult[count] = 0;
+					}
+				}
+				
+				tradePrice = candle.getTradePrice();
+			}
 		}
-	}*/
+
+		//100 Over
+		int tradeTrueCount = 0;
+		int highTrueCount = 0;
+		int lowTrueCount = 0;
+		
+		//102 Over
+		int tradeTrueCount102 = 0;
+		int highTrueCount102 = 0;
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("Result.\n");
+		for(CandleMin candle : resultCandleMinList)
+		{
+			float tradeCompareRate = (candle.getTradePrice() / candle.getOpeningPrice()) * 100;
+			float highCompareRate = (candle.getHighPrice() / candle.getOpeningPrice()) * 100;
+			float lowCompareRate = (candle.getLowPrice() / candle.getOpeningPrice()) * 100;
+			
+			boolean tradeCompareResult = tradeCompareRate > 100 ? true : false;
+			boolean highCompareResult = highCompareRate > 100 ? true : false;
+			boolean lowCompareResult = lowCompareRate > 100 ? true : false;
+
+			if(tradeCompareResult == true)
+				tradeTrueCount++;
+			if(highCompareResult == true)
+				highTrueCount++;
+			if(lowCompareResult == true)
+				lowTrueCount++;
+				
+			if(tradeCompareRate >= 102)
+				tradeTrueCount102++;
+			if(highTrueCount102 >= 102)
+				highTrueCount102++;
+			
+			sb.append(String.format("market=%s time=%s openingPrice=%.2f highPrice=%.2f lowPrice=%.2f tradePrice=%.2f "
+					+ "종가비교 : %.2f 고가비교 : %.2f 저가비교 : %.2f 종가상승 : %s, 고가상승 : %s 저가상승 : %s \n",  
+					candle.getMarket(), candle.getCandleDateTimeKST(), candle.getOpeningPrice(), candle.getHighPrice(),
+					candle.getLowPrice(), candle.getTradePrice(), tradeCompareRate, highCompareRate, lowCompareRate,
+					tradeCompareResult, highCompareResult, lowCompareResult));
+		}
+		
+		sb.append(String.format("TotalCount=%s tradeTrueCount=%s highTrueCount=%s lowTrueCount=%s\n", resultCandleMinList.size(), tradeTrueCount, highTrueCount, lowTrueCount));
+		sb.append(String.format("tradeTrue102Over=%s highTrue102Over=%s", tradeTrueCount102, highTrueCount102));
+		log.info(sb);
+		
+		log.info("Test 1 End");
+	}
+	
+	public void bwchoiTest2()
+	{
+		log.info("Test 2 Start");
+		
+		List<CandleMin> resultCandleMinList = Lists.newArrayList();
+		//3분봉 리스트로 조건 체크 해보기
+		for(String market : enableCoinList)
+		{
+			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
+
+			/* 조건
+			 * 1. 이전 시간보다 종가가 큰 경우(상승봉) 
+			 * 2. 1의 조건이 2번 연속인 경우
+			 * */
+			float tradePrice = 0;
+			int[] testResult = {0, 0};	//0 : false(not test) 1 : true(test true)
+			
+			for(int i = candleMinList.size()-1; i >= 0; i--)
+			{
+				CandleMin candle = candleMinList.get(i);
+				if(candle == null)
+				{
+					log.info(String.format("Cannot found CandleMin. position=%s", i));
+					continue;
+				}
+				
+				//처음 한바퀴
+				if(tradePrice <= 0)
+				{
+					tradePrice = candle.getTradePrice();
+					continue;
+				}
+				//조건이 다 맞춰져 있으면 해당 Candle 출력
+				if(testResult[0] == 1 && testResult[1]  == 1)
+				{
+					resultCandleMinList.add(candle);
+					for(int count = 0; count < testResult.length; count++)
+					{
+						testResult[count] = 0;
+					}
+				}
+			
+				if(candle.getTradePrice() > tradePrice)
+				{
+					for(int count = 0; count < testResult.length; count++)
+					{
+						if(testResult[count] == 0)
+						{
+							testResult[count] = 1;
+							break;
+						}
+					}
+				}
+				else	//조건 실패시 result 초기화
+				{
+					for(int count = 0; count < testResult.length; count++)
+					{
+						testResult[count] = 0;
+					}
+				}
+				
+				tradePrice = candle.getTradePrice();
+			}
+		}
+
+		//100 Over
+		int tradeTrueCount = 0;
+		int highTrueCount = 0;
+		int lowTrueCount = 0;
+		
+		//102 Over
+		int tradeTrueCount102 = 0;
+		int highTrueCount102 = 0;
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("Result.\n");
+		for(CandleMin candle : resultCandleMinList)
+		{
+			float tradeCompareRate = (candle.getTradePrice() / candle.getOpeningPrice()) * 100;
+			float highCompareRate = (candle.getHighPrice() / candle.getOpeningPrice()) * 100;
+			float lowCompareRate = (candle.getLowPrice() / candle.getOpeningPrice()) * 100;
+			
+			boolean tradeCompareResult = tradeCompareRate > 100 ? true : false;
+			boolean highCompareResult = highCompareRate > 100 ? true : false;
+			boolean lowCompareResult = lowCompareRate > 100 ? true : false;
+
+			if(tradeCompareResult == true)
+				tradeTrueCount++;
+			if(highCompareResult == true)
+				highTrueCount++;
+			if(lowCompareResult == true)
+				lowTrueCount++;
+			
+			if(tradeCompareRate >= 102)
+				tradeTrueCount102++;
+			if(highTrueCount102 >= 102)
+				highTrueCount102++;
+			
+			sb.append(String.format("market=%s time=%s openingPrice=%.2f highPrice=%.2f lowPrice=%.2f tradePrice=%.2f "
+					+ "종가비교 : %.2f 고가비교 : %.2f 저가비교 : %.2f 종가상승 : %s, 고가상승 : %s 저가상승 : %s \n",  
+					candle.getMarket(), candle.getCandleDateTimeKST(), candle.getOpeningPrice(), candle.getHighPrice(),
+					candle.getLowPrice(), candle.getTradePrice(), tradeCompareRate, highCompareRate, lowCompareRate,
+					tradeCompareResult, highCompareResult, lowCompareResult));
+		}
+		
+		sb.append(String.format("TotalCount=%s tradeTrueCount=%s highTrueCount=%s lowTrueCount=%s\n", resultCandleMinList.size(), tradeTrueCount, highTrueCount, lowTrueCount));
+		sb.append(String.format("tradeTrue102Over=%s highTrue102Over=%s", tradeTrueCount102, highTrueCount102));
+		log.info(sb);
+
+		log.info("Test 2 End");
+	}
 	
 	public class CoinServiceThread implements Runnable
 	{
@@ -265,21 +460,27 @@ public class DataService {
 		public void setCandleMin()
 		{
 			String errMaeket = StringUtils.EMPTY;
+			List<Thread> threadList = Lists.newArrayList();
 			try
 			{
 				for(String market : enableCoinList)
 				{
 					errMaeket = market;
-					if(candleMinThreadMap.get(market).isAlive() == false)
-					{
-						candleMinThreadMap.get(market).start();
-					}
-					else
-					{
-						candleMinThreadMap.get(market).run();
-					}
 					
-					Thread.sleep(100);
+					Thread thread = new Thread(new CandleMinRefreshThread(market, 3, 200));
+					thread.setName(String.format("%s_CandleMinThread", market));
+					thread.setDaemon(true);
+					
+					threadList.add(thread);
+					
+					thread.start();
+					
+					Thread.sleep(150);
+				}
+				
+				for(Thread thread : threadList)
+				{
+					thread.join();
 				}
 			}
 			catch(Exception e)
@@ -303,8 +504,13 @@ public class DataService {
 					/* Set Data Function List Start*/
 					
 					setCandleMin();
-//					setTickerData();	//Coin Data Refresh
+					log.info(String.format("Candle Set Completed."));
+
+					bwchoiTest();
+					bwchoiTest2();
+					//Candle Data로 분석 하는 로직
 					
+//					
 					/* Set Data Function List End*/
 					
 					compareTime = Calendar.getInstance().getTimeInMillis() - startTime;
@@ -315,7 +521,7 @@ public class DataService {
 //						Thread.sleep(1000);
 					
 					//bwchoi Test
-					Thread.sleep(10000);
+					break;
 				}
 				catch(Exception e)
 				{
@@ -341,13 +547,23 @@ public class DataService {
 		@Override
 		public void run()
 		{
-			try
+			while(true)
 			{
-				setCandleMinMap(market, min, count);
-			}
-			catch(Exception e)
-			{
-				log.info(String.format("CandleMinRefreshThread Interrupt. market=%s min=%s count=%s \n%s", this.market, this.min, this.count, e.toString()));
+				try
+				{
+					setCandleMinMap(market, min, count);
+					break;
+				}
+				catch(Exception e)
+				{
+					log.info(String.format("CandleMinRefreshThread Interrupt. market=%s min=%s count=%s \n%s", this.market, this.min, this.count, e.toString()));
+					try {
+						Thread.sleep(300);
+					} catch (InterruptedException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
 			}
 		}
 	}

@@ -14,20 +14,20 @@ public class CandleMin{
 	public String market;
 	public String candleDateTimeUTC;
 	public String candleDateTimeKST;
-	public double openingPrice;
-	public double highPrice;
-	public double lowPrice;
-	public double tradePrice;
+	public float openingPrice;
+	public float highPrice;
+	public float lowPrice;
+	public float tradePrice;
 	public long timestamp;
-	public double candleAccTradePrice;
-	public double candleAccTradevolume;
+	public float candleAccTradePrice;
+	public float candleAccTradevolume;
 	public int unit;
 	
 	@ConstructorProperties({"market", "candle_date_time_utc", "candle_date_time_kst", "opening_price", 
 		"high_price", "low_price", "trade_price", "timestamp", "candle_acc_trade_price", "candle_acc_trade_volume", "unit"})
-	public CandleMin(String market, String candleDateTimeUTC, String candleDateTimeKST, double openingPrice, 
-			double highPrice, double lowPrice, double tradePrice, long timestamp, double candleAccTradePrice, 
-			double candleAccTradevolume, int unit) 
+	public CandleMin(String market, String candleDateTimeUTC, String candleDateTimeKST, float openingPrice, 
+			float highPrice, float lowPrice, float tradePrice, long timestamp, float candleAccTradePrice, 
+			float candleAccTradevolume, int unit) 
 	{
 		this.market = market;
 		this.candleDateTimeUTC = candleDateTimeUTC;
