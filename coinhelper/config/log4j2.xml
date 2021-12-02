@@ -10,7 +10,7 @@
 			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] [%c{1}][%M] - %m%n" />
 		</Console>
 		
-		<UserRollingFile name="ALL" fileName="D:/GitHub_Code/log/all.log"  filePattern="D:/GitHub_Code/log/all.%i.log" immediateFlush="false">
+		<UserRollingFile name="ALL" fileName="D:/log/coinHelper/all.log"  filePattern="D:/log/coinHelper/all.%i.log" immediateFlush="false">
 			<PatternLayout pattern="[%d{yyyy-MM-dd HH:mm:ss.SSS}] [%-5p] - %m%n" />
 			<Policies>
 				<OnStartupTriggeringPolicy /> 

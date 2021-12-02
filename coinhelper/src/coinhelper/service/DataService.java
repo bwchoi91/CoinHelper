@@ -203,6 +203,10 @@ public class DataService {
 		}
 	}
 	
+	/* 조건
+	 * 1. 이전 시간보다 종가가 큰 경우(상승봉) 
+	 * 2. 1의 조건이 3번 연속인 경우
+	 * */
 	public void bwchoiTest()
 	{
 		log.info("Test 1 Start");
@@ -212,10 +216,6 @@ public class DataService {
 		{
 			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
 
-			/* 조건
-			 * 1. 이전 시간보다 종가가 큰 경우(상승봉) 
-			 * 2. 1의 조건이 3번 연속인 경우
-			 * */
 			float tradePrice = 0;
 			int[] testResult = {0, 0, 0};	//0 : false(not test) 1 : true(test true)
 			
@@ -314,6 +314,10 @@ public class DataService {
 		log.info("Test 1 End");
 	}
 	
+	/* 조건
+	 * 1. 이전 시간보다 종가가 큰 경우(상승봉) 
+	 * 2. 1의 조건이 2번 연속인 경우
+	 * */
 	public void bwchoiTest2()
 	{
 		log.info("Test 2 Start");
@@ -324,10 +328,6 @@ public class DataService {
 		{
 			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
 
-			/* 조건
-			 * 1. 이전 시간보다 종가가 큰 경우(상승봉) 
-			 * 2. 1의 조건이 2번 연속인 경우
-			 * */
 			float tradePrice = 0;
 			int[] testResult = {0, 0};	//0 : false(not test) 1 : true(test true)
 			
@@ -424,6 +424,152 @@ public class DataService {
 		log.info(sb);
 
 		log.info("Test 2 End");
+	}
+	
+	/**
+	 * 조건
+	 * 1. 5분봉
+	 * 2. 큰 양봉일때(3% 이상)	(조건 1)
+	 * 3. 2의 조건에서 다음 3개의 봉이 음봉일때 (조건 2,3,4)
+	 * 4. 3의 조건에서 연속된 5분봉 의 차가 없을때는 묶어서 하나로 취급
+	 * 5. 3의 조건에서 5분봉 변화가 없을때(상승은 제외)는 조건 Continue
+	 */
+	public void bwchoiTest3(int conditionCount, int condition1Para, int condition2Para, int condition3Para, int condition4Para)
+	{
+		log.info("Test 2 Start");
+		
+		List<CandleMin> resultCandleMinList = Lists.newArrayList();
+		//3분봉 리스트로 조건 체크 해보기
+		for(String market : enableCoinList)
+		{
+			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
+
+			float tradePrice = 0;
+
+			int conditionNo = 0;
+			for(int i = candleMinList.size()-1; i >= 0; i--)
+			{
+				CandleMin candle = candleMinList.get(i);
+				if(candle == null)
+				{
+					log.info(String.format("Cannot found CandleMin. position=%s", i));
+					continue;
+				}
+				
+				//처음 한바퀴
+				if(tradePrice <= 0)
+				{
+					tradePrice = candle.getTradePrice();
+					continue;
+				}
+				
+				//모든 조건 만족
+				if(conditionNo >= conditionCount)
+				{
+					resultCandleMinList.add(candle);
+					conditionNo = 0;
+				}
+				
+				switch(this.condition(candle, tradePrice, conditionNo))
+				{
+					case -1 : break;	//Continue
+					case 0 : conditionNo = 0; break;	//NG
+					case 1 : conditionNo++; break;	//OK
+				}
+				
+				tradePrice = candle.getTradePrice();
+			}
+		}
+
+		//100 Over
+		int tradeTrueCount = 0;
+		int highTrueCount = 0;
+		int lowTrueCount = 0;
+		
+		//102 Over
+		int tradeTrueCount102 = 0;
+		int highTrueCount102 = 0;
+		
+		StringBuilder sb = new StringBuilder();
+		sb.append("Result.\n");
+		for(CandleMin candle : resultCandleMinList)
+		{
+			float tradeCompareRate = (candle.getTradePrice() / candle.getOpeningPrice()) * 100;
+			float highCompareRate = (candle.getHighPrice() / candle.getOpeningPrice()) * 100;
+			float lowCompareRate = (candle.getLowPrice() / candle.getOpeningPrice()) * 100;
+			
+			boolean tradeCompareResult = tradeCompareRate > 100 ? true : false;
+			boolean highCompareResult = highCompareRate > 100 ? true : false;
+			boolean lowCompareResult = lowCompareRate > 100 ? true : false;
+
+			if(tradeCompareResult == true)
+				tradeTrueCount++;
+			if(highCompareResult == true)
+				highTrueCount++;
+			if(lowCompareResult == true)
+				lowTrueCount++;
+			
+			if(tradeCompareRate >= 102)
+				tradeTrueCount102++;
+			if(highTrueCount102 >= 102)
+				highTrueCount102++;
+			
+			sb.append(String.format("market=%s time=%s openingPrice=%.2f highPrice=%.2f lowPrice=%.2f tradePrice=%.2f "
+					+ "종가비교 : %.2f 고가비교 : %.2f 저가비교 : %.2f 종가상승 : %s, 고가상승 : %s 저가상승 : %s \n",  
+					candle.getMarket(), candle.getCandleDateTimeKST(), candle.getOpeningPrice(), candle.getHighPrice(),
+					candle.getLowPrice(), candle.getTradePrice(), tradeCompareRate, highCompareRate, lowCompareRate,
+					tradeCompareResult, highCompareResult, lowCompareResult));
+		}
+		
+		sb.append(String.format("TotalCount=%s tradeTrueCount=%s highTrueCount=%s lowTrueCount=%s\n", resultCandleMinList.size(), tradeTrueCount, highTrueCount, lowTrueCount));
+		sb.append(String.format("tradeTrue102Over=%s highTrue102Over=%s", tradeTrueCount102, highTrueCount102));
+		log.info(sb);
+
+		log.info("Test 2 End");
+	}
+	
+	/**
+	 * @param candle
+	 * @param tradePrice
+	 * @param conditionCount
+	 * @return
+	 * 
+	 * -1 : Continue
+	 *  0 : NG
+	 *  1 : OK
+	 */
+	public int condition(CandleMin candle, float tradePrice, int conditionNo, int... para)
+	{
+		/**
+		 * 조건
+		 * 1. 5분봉
+		 * 2. 큰 양봉일때(3% 이상)	(조건 1)
+		 * 3. 2의 조건에서 다음 3개의 봉이 음봉일때 (조건 2,3,4)
+		 * 4. 3의 조건에서 연속된 5분봉 의 차가 없을때는 묶어서 하나로 취급
+		 * 5. 3의 조건에서 5분봉 변화가 없을때(상승은 제외)는 조건 Continue
+		 */
+		
+		float rate = (float)(1 + para[conditionNo]*0.01);
+		
+		//First Condition
+		if(conditionNo == 0)
+		{
+			if(candle.getTradePrice() > tradePrice*rate)
+			{
+				return 1;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		//Seconds Condition
+		else if(conditionNo == 1)
+		{
+			
+		}
+		
+		return 0;
 	}
 	
 	public class CoinServiceThread implements Runnable
