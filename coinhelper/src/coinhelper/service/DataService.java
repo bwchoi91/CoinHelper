@@ -429,24 +429,28 @@ public class DataService {
 	/**
 	 * 조건
 	 * 1. 5분봉
-	 * 2. 큰 양봉일때(3% 이상)	(조건 1)
-	 * 3. 2의 조건에서 다음 3개의 봉이 음봉일때 (조건 2,3,4)
-	 * 4. 3의 조건에서 연속된 5분봉 의 차가 없을때는 묶어서 하나로 취급
-	 * 5. 3의 조건에서 5분봉 변화가 없을때(상승은 제외)는 조건 Continue
+	 * 2. 큰 양봉일때	(조건 1) para0
+	 * 3. 양봉에서 음봉으로 변경(조건 2) para1
+	 * 4. 3의 조건에서 다음 3개의 봉이 음봉일때 (조건 3,4,5)(지금부터 조건에 맞으면 틱으로 계산) para2
+	 * 5. 4의 조건에서 5분봉 변화가 거의 없을때는 조건 Continue para3
 	 */
-	public void bwchoiTest3(int conditionCount, int condition1Para, int condition2Para, int condition3Para, int condition4Para)
+	public void bwchoiTest3(int conditionCount, int... para)
 	{
-		log.info("Test 2 Start");
+		log.info("bwchoiTest3 Start");
 		
 		List<CandleMin> resultCandleMinList = Lists.newArrayList();
+		
+		Map<String, List<CandleMin>> historyCandleMinListMap = Maps.newConcurrentMap();
+		
 		//3분봉 리스트로 조건 체크 해보기
 		for(String market : enableCoinList)
 		{
 			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
 
 			float tradePrice = 0;
-
 			int conditionNo = 0;
+			List<CandleMin> historyCandleMinList = Lists.newArrayList();
+			
 			for(int i = candleMinList.size()-1; i >= 0; i--)
 			{
 				CandleMin candle = candleMinList.get(i);
@@ -467,17 +471,25 @@ public class DataService {
 				if(conditionNo >= conditionCount)
 				{
 					resultCandleMinList.add(candle);
+					historyCandleMinList.add(candle);
+					
+					List<CandleMin> copyHistory = Lists.newArrayList();
+					copyHistory.addAll(historyCandleMinList);
+					
+					historyCandleMinListMap.put(candle.getMarket(), copyHistory);
+					
 					conditionNo = 0;
+					historyCandleMinList.clear();
+					
 				}
 				
-				switch(this.condition(candle, tradePrice, conditionNo))
+				switch(this.condition(candle, tradePrice, conditionNo, para[0], para[1], para[2], para[3]))
 				{
-					case -1 : break;	//Continue
-					case 0 : conditionNo = 0; break;	//NG
-					case 1 : conditionNo++; break;	//OK
+					case -1 : tradePrice = candle.getTradePrice(); historyCandleMinList.add(candle); break;	//Continue
+					case 0 : conditionNo = 0; tradePrice = candle.getTradePrice(); historyCandleMinList.clear(); break;	//NG
+					case 1 : conditionNo++; tradePrice = candle.getTradePrice(); historyCandleMinList.add(candle); break;	//OK
 				}
 				
-				tradePrice = candle.getTradePrice();
 			}
 		}
 
@@ -494,7 +506,19 @@ public class DataService {
 		sb.append("Result.\n");
 		for(CandleMin candle : resultCandleMinList)
 		{
-			float tradeCompareRate = (candle.getTradePrice() / candle.getOpeningPrice()) * 100;
+			List<CandleMin> historyCandleList = historyCandleMinListMap.get(candle.getMarket());
+			if(historyCandleList.size() < 1)
+			{
+				log.error(String.format("Cannot found HistoryCandle. market=%s", candle.getMarket()));
+				continue;
+			}
+			for(CandleMin historyCandle : historyCandleList)
+			{
+				sb.append(String.format("market=%s time=%s openingPrice=%.2f highPrice=%.2f lowPrice=%.2f tradePrice=%.2f \n",
+						historyCandle.getMarket(), historyCandle.getCandleDateTimeKST(), historyCandle.getOpeningPrice(), historyCandle.getHighPrice(),
+						historyCandle.getLowPrice(), historyCandle.getTradePrice()));
+			}
+			/*float tradeCompareRate = (candle.getTradePrice() / candle.getOpeningPrice()) * 100;
 			float highCompareRate = (candle.getHighPrice() / candle.getOpeningPrice()) * 100;
 			float lowCompareRate = (candle.getLowPrice() / candle.getOpeningPrice()) * 100;
 			
@@ -518,14 +542,15 @@ public class DataService {
 					+ "종가비교 : %.2f 고가비교 : %.2f 저가비교 : %.2f 종가상승 : %s, 고가상승 : %s 저가상승 : %s \n",  
 					candle.getMarket(), candle.getCandleDateTimeKST(), candle.getOpeningPrice(), candle.getHighPrice(),
 					candle.getLowPrice(), candle.getTradePrice(), tradeCompareRate, highCompareRate, lowCompareRate,
-					tradeCompareResult, highCompareResult, lowCompareResult));
+					tradeCompareResult, highCompareResult, lowCompareResult));*/
 		}
 		
-		sb.append(String.format("TotalCount=%s tradeTrueCount=%s highTrueCount=%s lowTrueCount=%s\n", resultCandleMinList.size(), tradeTrueCount, highTrueCount, lowTrueCount));
-		sb.append(String.format("tradeTrue102Over=%s highTrue102Over=%s", tradeTrueCount102, highTrueCount102));
+		sb.append(String.format("TotalCount=%s \n", resultCandleMinList.size()));
+//		sb.append(String.format("TotalCount=%s tradeTrueCount=%s highTrueCount=%s lowTrueCount=%s\n", resultCandleMinList.size(), tradeTrueCount, highTrueCount, lowTrueCount));
+//		sb.append(String.format("tradeTrue102Over=%s highTrue102Over=%s", tradeTrueCount102, highTrueCount102));
 		log.info(sb);
 
-		log.info("Test 2 End");
+		log.info("bwchoiTest3 End");
 	}
 	
 	/**
@@ -543,17 +568,18 @@ public class DataService {
 		/**
 		 * 조건
 		 * 1. 5분봉
-		 * 2. 큰 양봉일때(3% 이상)	(조건 1)
-		 * 3. 2의 조건에서 다음 3개의 봉이 음봉일때 (조건 2,3,4)
-		 * 4. 3의 조건에서 연속된 5분봉 의 차가 없을때는 묶어서 하나로 취급
-		 * 5. 3의 조건에서 5분봉 변화가 없을때(상승은 제외)는 조건 Continue
+		 * 2. 큰 양봉일때	(조건 1) para0
+		 * 3. 양봉에서 음봉으로 변경(조건 2) para1
+		 * 4. 3의 조건에서 다음 3개의 봉이 음봉일때 (조건 3,4,5)(지금부터 조건에 맞으면 틱으로 계산) para2
+		 * 5. 4의 조건에서 5분봉 변화가 상승봉일때 Continue 조건 para3
 		 */
-		
-		float rate = (float)(1 + para[conditionNo]*0.01);
 		
 		//First Condition
 		if(conditionNo == 0)
 		{
+			float rate = (float)(1 + para[0]*0.01);
+			
+			//큰 양봉일때	(조건 1) para0
 			if(candle.getTradePrice() > tradePrice*rate)
 			{
 				return 1;
@@ -563,10 +589,52 @@ public class DataService {
 				return 0;
 			}
 		}
+
 		//Seconds Condition
 		else if(conditionNo == 1)
 		{
+			float rate = (float)(1 - para[1]*0.01);
 			
+			//양봉에서 음봉으로 변경(조건 2) para1
+			if(candle.getTradePrice() < tradePrice*rate)
+			{
+				return 1;
+			}
+			else
+			{
+				return 0;
+			}
+		}
+		
+		//Third~ Condition
+		else if(conditionNo == 2 || conditionNo == 3 || conditionNo == 4)
+		{
+			float rate = (float)(1 - para[2]*0.01);
+			float upRate = (float)(1 + para[3]*0.001);
+			
+			//다음 3개의 봉이 음봉일때 (조건 3,4,5)(지금부터 조건에 맞으면 틱으로 계산) para2
+			if(candle.getTradePrice() < tradePrice*rate)
+			{
+				return 1;
+			}
+			else
+			{
+				// 5분봉 변화가 거의 없을때는 조건 Continue
+				// 상승봉이지만 0.3% 보다는 낮을 경우는 Continue
+				if(candle.getTradePrice() < tradePrice*upRate && candle.getTradePrice() > tradePrice)
+				{
+					return -1;
+				}
+				// 하락봉이지만  para2 조건보다 큰 경우는 Continue
+				else if(candle.getTradePrice() > tradePrice*rate && candle.getTradePrice() < tradePrice)
+				{
+					return -1;
+				}
+				else
+				{
+					return 0;
+				}
+			}
 		}
 		
 		return 0;
@@ -613,7 +681,7 @@ public class DataService {
 				{
 					errMaeket = market;
 					
-					Thread thread = new Thread(new CandleMinRefreshThread(market, 3, 200));
+					Thread thread = new Thread(new CandleMinRefreshThread(market, 5, 200));
 					thread.setName(String.format("%s_CandleMinThread", market));
 					thread.setDaemon(true);
 					
@@ -652,8 +720,9 @@ public class DataService {
 					setCandleMin();
 					log.info(String.format("Candle Set Completed."));
 
-					bwchoiTest();
-					bwchoiTest2();
+					//(양봉, 양봉후음봉, 음봉, 음봉, 음봉)
+					//조건 수(5), 양봉율(x%), 양봉이후 음봉율(x%), 음봉율(x%), skip양봉비율(0.x%)
+					bwchoiTest3(5, 1, 0, 1, 3);
 					//Candle Data로 분석 하는 로직
 					
 //					
