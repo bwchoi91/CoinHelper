@@ -433,6 +433,8 @@ public class DataService {
 	 * 3. 양봉에서 음봉으로 변경(조건 2) para1
 	 * 4. 3의 조건에서 다음 3개의 봉이 음봉일때 (조건 3,4,5)(지금부터 조건에 맞으면 틱으로 계산) para2
 	 * 5. 4의 조건에서 5분봉 변화가 거의 없을때는 조건 Continue para3
+	 * 6. Buy 한 후 익절율 para4
+	 * 7. Buy 한 후 손절율 para5
 	 */
 	public void bwchoiTest3(int conditionCount, int... para)
 	{
@@ -442,13 +444,25 @@ public class DataService {
 		
 		Map<String, List<CandleMin>> historyCandleMinListMap = Maps.newConcurrentMap();
 		
+		List<CandleMin> buyCandleMinList = Lists.newArrayList();
+		List<CandleMin> goodSellCandleMinList = Lists.newArrayList();
+		List<CandleMin> badSellCandleMinList = Lists.newArrayList();
+		
 		//3분봉 리스트로 조건 체크 해보기
 		for(String market : enableCoinList)
 		{
 			List<CandleMin> candleMinList = coinListMap.get(market).getCandleMinList();
 
+			Coin coin = this.coinListMap.get(market);
+			if(coin == null)
+			{
+				log.error(String.format("Cannot found coin. market=%s", market));
+				break;
+			}
+			
 			float tradePrice = 0;
 			int conditionNo = 0;
+			
 			List<CandleMin> historyCandleMinList = Lists.newArrayList();
 			
 			for(int i = candleMinList.size()-1; i >= 0; i--)
@@ -464,43 +478,67 @@ public class DataService {
 				if(tradePrice <= 0)
 				{
 					tradePrice = candle.getTradePrice();
+					coin.setBuy(false);
+					
 					continue;
 				}
 				
-				//모든 조건 만족
-				if(conditionNo >= conditionCount)
+				if(coin.isBuy() == false)
 				{
-					resultCandleMinList.add(candle);
-					historyCandleMinList.add(candle);
+					//모든 조건이 맞음(Buy)
+					if(conditionNo >= conditionCount)
+					{
+						resultCandleMinList.add(candle);
+						historyCandleMinList.add(candle);
+						
+						List<CandleMin> copyHistory = Lists.newArrayList();
+						copyHistory.addAll(historyCandleMinList);
+						
+						historyCandleMinListMap.put(candle.getMarket(), copyHistory);
+						
+						conditionNo = 0;
+						historyCandleMinList.clear();
+						
+						buyCandleMinList.add(candle);
+						
+						//Buy Logic(now Test)
+						
+						coin.setBuyPrice(candle.getOpeningPrice());
+						coin.setBuy(true);
+						
+						continue;
+						
+					}
 					
-					List<CandleMin> copyHistory = Lists.newArrayList();
-					copyHistory.addAll(historyCandleMinList);
-					
-					historyCandleMinListMap.put(candle.getMarket(), copyHistory);
-					
-					conditionNo = 0;
-					historyCandleMinList.clear();
-					
+					switch(this.buyCondition(candle, tradePrice, conditionNo, para))
+					{
+						case -1 : tradePrice = candle.getTradePrice(); historyCandleMinList.add(candle); break;	//Continue
+						case 0 : conditionNo = 0; tradePrice = candle.getTradePrice(); historyCandleMinList.clear(); break;	//NG
+						case 1 : conditionNo++; tradePrice = candle.getTradePrice(); historyCandleMinList.add(candle); break;	//OK
+					}
 				}
-				
-				switch(this.condition(candle, tradePrice, conditionNo, para[0], para[1], para[2], para[3]))
+				else	//isBuy == true
 				{
-					case -1 : tradePrice = candle.getTradePrice(); historyCandleMinList.add(candle); break;	//Continue
-					case 0 : conditionNo = 0; tradePrice = candle.getTradePrice(); historyCandleMinList.clear(); break;	//NG
-					case 1 : conditionNo++; tradePrice = candle.getTradePrice(); historyCandleMinList.add(candle); break;	//OK
+					
+					int isSell = this.sellCondition(coin, candle, para);
+					// 1:GoodSell, 0:NotSell, -1:BadSell
+					if(isSell == 1)
+					{
+						goodSellCandleMinList.add(candle);
+
+						coin.setBuyPrice(0);
+						coin.setBuy(false);
+					}
+					else if(isSell == -1)
+					{
+						badSellCandleMinList.add(candle);
+
+						coin.setBuyPrice(0);
+						coin.setBuy(false);
+					}
 				}
-				
 			}
 		}
-
-		//100 Over
-		int tradeTrueCount = 0;
-		int highTrueCount = 0;
-		int lowTrueCount = 0;
-		
-		//102 Over
-		int tradeTrueCount102 = 0;
-		int highTrueCount102 = 0;
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append("Result.\n");
@@ -518,36 +556,25 @@ public class DataService {
 						historyCandle.getMarket(), historyCandle.getCandleDateTimeKST(), historyCandle.getOpeningPrice(), historyCandle.getHighPrice(),
 						historyCandle.getLowPrice(), historyCandle.getTradePrice()));
 			}
-			/*float tradeCompareRate = (candle.getTradePrice() / candle.getOpeningPrice()) * 100;
-			float highCompareRate = (candle.getHighPrice() / candle.getOpeningPrice()) * 100;
-			float lowCompareRate = (candle.getLowPrice() / candle.getOpeningPrice()) * 100;
-			
-			boolean tradeCompareResult = tradeCompareRate > 100 ? true : false;
-			boolean highCompareResult = highCompareRate > 100 ? true : false;
-			boolean lowCompareResult = lowCompareRate > 100 ? true : false;
-
-			if(tradeCompareResult == true)
-				tradeTrueCount++;
-			if(highCompareResult == true)
-				highTrueCount++;
-			if(lowCompareResult == true)
-				lowTrueCount++;
-			
-			if(tradeCompareRate >= 102)
-				tradeTrueCount102++;
-			if(highTrueCount102 >= 102)
-				highTrueCount102++;
-			
-			sb.append(String.format("market=%s time=%s openingPrice=%.2f highPrice=%.2f lowPrice=%.2f tradePrice=%.2f "
-					+ "종가비교 : %.2f 고가비교 : %.2f 저가비교 : %.2f 종가상승 : %s, 고가상승 : %s 저가상승 : %s \n",  
-					candle.getMarket(), candle.getCandleDateTimeKST(), candle.getOpeningPrice(), candle.getHighPrice(),
-					candle.getLowPrice(), candle.getTradePrice(), tradeCompareRate, highCompareRate, lowCompareRate,
-					tradeCompareResult, highCompareResult, lowCompareResult));*/
 		}
 		
-		sb.append(String.format("TotalCount=%s \n", resultCandleMinList.size()));
-//		sb.append(String.format("TotalCount=%s tradeTrueCount=%s highTrueCount=%s lowTrueCount=%s\n", resultCandleMinList.size(), tradeTrueCount, highTrueCount, lowTrueCount));
-//		sb.append(String.format("tradeTrue102Over=%s highTrue102Over=%s", tradeTrueCount102, highTrueCount102));
+		sb.append(String.format("\nBuy List. count=%s\n", buyCandleMinList.size()));
+		for(CandleMin candle : buyCandleMinList)
+		{
+			sb.append(String.format("market=%s time=%s BuyPrice=%.2f \n", candle.getMarket(), candle.getCandleDateTimeKST(), candle.getOpeningPrice()));
+		}
+		
+		sb.append(String.format("\nGood Sell List. rate=%.2f count=%s\n", (100+para[4]*0.1), goodSellCandleMinList.size()));
+		for(CandleMin candle : goodSellCandleMinList)
+		{
+			sb.append(String.format("market=%s time=%s HighPrice=%.2f LowPrice=%.2f\n", candle.getMarket(), candle.getCandleDateTimeKST(), candle.getHighPrice(), candle.getLowPrice()));
+		}
+		
+		sb.append(String.format("\nBad Sell List. rate=%.2f count=%s\n", (100-para[5]*0.1), badSellCandleMinList.size()));
+		for(CandleMin candle : badSellCandleMinList)
+		{
+			sb.append(String.format("market=%s time=%s LowPrice=%.2f HighPrice=%.2f \n", candle.getMarket(), candle.getCandleDateTimeKST(), candle.getLowPrice(), candle.getHighPrice()));
+		}
 		log.info(sb);
 
 		log.info("bwchoiTest3 End");
@@ -563,7 +590,7 @@ public class DataService {
 	 *  0 : NG
 	 *  1 : OK
 	 */
-	public int condition(CandleMin candle, float tradePrice, int conditionNo, int... para)
+	public int buyCondition(CandleMin candle, float tradePrice, int conditionNo, int... para)
 	{
 		/**
 		 * 조건
@@ -638,6 +665,27 @@ public class DataService {
 		}
 		
 		return 0;
+	}
+	
+	public int sellCondition(Coin coin, CandleMin candle, int... para)
+	{
+		float goodSell = (float) (1 + para[4]*0.001);
+		float badSell = (float) (1 - para[5]*0.001);
+		int isSell = 0;
+		
+		//익절
+		if(candle.getHighPrice() > coin.getBuyPrice() * goodSell)
+		{
+			isSell = 1;
+		}
+		
+		//손절
+		else if(candle.getLowPrice() < coin.getBuyPrice() * badSell)
+		{
+			isSell = -1;
+		}
+		
+		return isSell;
 	}
 	
 	public class CoinServiceThread implements Runnable
@@ -721,11 +769,10 @@ public class DataService {
 					log.info(String.format("Candle Set Completed."));
 
 					//(양봉, 양봉후음봉, 음봉, 음봉, 음봉)
-					//조건 수(5), 양봉율(x%), 양봉이후 음봉율(x%), 음봉율(x%), skip양봉비율(0.x%)
-					bwchoiTest3(5, 1, 0, 1, 3);
-					//Candle Data로 분석 하는 로직
+					//조건 수(5), 양봉율(x%), 양봉이후 음봉율(x%), 음봉율(x%), skip양봉비율(0.x%),익절율(0.x%), 손절율(0.x%)
+					bwchoiTest3(5, 3, 1, 1, 3, 20, 30);
+//					bwchoiTest3(5, 1, 1, 1, 3, 20, 30);
 					
-//					
 					/* Set Data Function List End*/
 					
 					compareTime = Calendar.getInstance().getTimeInMillis() - startTime;

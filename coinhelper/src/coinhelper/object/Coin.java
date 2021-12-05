@@ -30,6 +30,11 @@ public class Coin {
 	//Candle
 	public List<CandleMin> candleMinList = Lists.newArrayList();
 	
+	//BuySell
+	public boolean isBuy = false;
+	public float buyPrice;
+	public float sellPrice;
+	
 	@ConstructorProperties({"market", "korean_name", "english_name"})
 	public Coin(String market, String koreanName, String englishName)
 	{
