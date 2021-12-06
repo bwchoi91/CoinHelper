@@ -1,5 +1,6 @@
 package coinhelper.service;
 
+import java.io.FileWriter;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
@@ -15,6 +16,10 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jdom.Document;
+import org.jdom.Element;
+import org.jdom.output.Format;
+import org.jdom.output.XMLOutputter;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import coinhelper.object.CandleMin;
@@ -22,6 +27,7 @@ import coinhelper.object.Coin;
 import coinhelper.object.Ticker;
 import coinhelper.support.JsonParserList;
 import coinhelper.support.ServiceUrlList;
+import coinhelper.support.TimeUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -101,7 +107,7 @@ public class DataService {
 	        	for(Coin coin : marketAllList)
 	        	{
         			coinListMap.put(coin.getMarket(), coin);
-        			log.info(String.format("Put Complete. market=%s", coin.getMarket()));
+//        			log.info(String.format("Put Complete. market=%s", coin.getMarket()));
 	        		
         			//원화 거래하는 코인만 Enable(조건으로 설정하도록 할 예정)
 	        		if(StringUtils.contains(coin.getMarket(), "KRW-"))
@@ -119,13 +125,13 @@ public class DataService {
 		}
 	}
 	
-	public void setCandleMinMap(String market, int min, int count)
+	public void setCandleMinMap(String market, int min, int count, String time)
 	{
 		try
 		{
 			HttpClient client = HttpClientBuilder.create().build();
 			
-	        HttpGet request = new HttpGet(ServiceUrlList.getURL_CandleMin(min, market, count));
+	        HttpGet request = new HttpGet(ServiceUrlList.getURL_CandleMin(min, market, count, time));
 	        request.setHeader("Accept", "application/json");
 	        
 	        HttpResponse response = client.execute(request);
@@ -145,12 +151,77 @@ public class DataService {
         		
         		coin.addCandleMinList(candleMinList);
         		
-//        		log.info(String.format("CandleMinList Add Complete. market=%s", market));
+        		log.info(String.format("CandleMinList Add Complete. market=%s", market));
 	        }
 		}
 		catch(Exception e)
 		{
 			log.info(String.format("%s Error.\n%s", this.getClass().getEnclosingMethod().getName(), e.toString()));
+		}
+	}
+	
+	public void createCandleMinDateByXML()
+	{
+		try
+		{
+			// 루트 엘리먼트
+			Document doc =  new Document();
+			
+			Element candleElement = new Element("candle");
+			doc.addContent(candleElement);
+			
+			for(String market : this.enableCoinList)
+			{
+				Coin coin = this.coinListMap.get(market);
+				if(coin == null)
+				{
+					log.info(String.format("Cannot found Coin. market=%s", market));
+					continue;
+				}
+				
+				if(coin.getCandleMinList().size() < 1)
+				{
+					log.info(String.format("Cannot found CandleMinList. market=%s", market));
+					continue;
+				}
+	
+				Element marketElement = new Element("market");
+				marketElement.setAttribute("name", market);
+				
+				candleElement.addContent(marketElement);
+			
+				for(CandleMin candle : coin.getCandleMinList())
+				{
+					Element candleMinElement = new Element("candleMin");
+					
+					candleMinElement.addContent(new Element("candleDateTimeUTC").setText(candle.getCandleDateTimeUTC()));
+					candleMinElement.addContent(new Element("candleDateTimeKST").setText(candle.getCandleDateTimeKST()));
+					candleMinElement.addContent(new Element("openingPrice").setText(String.valueOf(candle.getOpeningPrice())));
+					candleMinElement.addContent(new Element("highPrice").setText(String.valueOf(candle.getHighPrice())));
+					candleMinElement.addContent(new Element("lowPrice").setText(String.valueOf(candle.getLowPrice())));
+					candleMinElement.addContent(new Element("tradePrice").setText(String.valueOf(candle.getTradePrice())));
+					candleMinElement.addContent(new Element("timestamp").setText(String.valueOf(candle.getTimestamp())));
+					candleMinElement.addContent(new Element("candleAccTradePrice").setText(String.valueOf(candle.getCandleAccTradePrice())));
+					candleMinElement.addContent(new Element("candleAccTradevolume").setText(String.valueOf(candle.getCandleAccTradevolume())));
+					candleMinElement.addContent(new Element("unit").setText(String.valueOf(candle.getUnit())));
+					
+					marketElement.addContent(candleMinElement);
+				}
+			}
+			
+			FileWriter write = new FileWriter("D:/log/CoinHelper/candleData.xml");
+			XMLOutputter output = new XMLOutputter();
+			
+			output.setFormat(Format.getPrettyFormat());
+			
+			output.output(doc, write);
+			
+			write.close();
+			
+		}
+		catch(Exception e)
+		{
+			log.error(e);
 		}
 	}
 	
@@ -738,12 +809,24 @@ public class DataService {
 					thread.start();
 					
 					Thread.sleep(150);
+					
 				}
 				
 				for(Thread thread : threadList)
 				{
 					thread.join();
 				}
+				
+				// Test Logging
+				/*for(String market : enableCoinList)
+				{
+					Coin coin = coinListMap.get(market);
+					int count = 0;
+					for(CandleMin candle : coin.getCandleMinList())
+					{
+						log.info(String.format("market=%s time=%s count=%s", candle.getMarket(), candle.getCandleDateTimeKST(), count++));
+					}
+				}*/
 			}
 			catch(Exception e)
 			{
@@ -767,11 +850,12 @@ public class DataService {
 					
 					setCandleMin();
 					log.info(String.format("Candle Set Completed."));
+					createCandleMinDateByXML();
 
 					//(양봉, 양봉후음봉, 음봉, 음봉, 음봉)
 					//조건 수(5), 양봉율(x%), 양봉이후 음봉율(x%), 음봉율(x%), skip양봉비율(0.x%),익절율(0.x%), 손절율(0.x%)
-					bwchoiTest3(5, 3, 1, 1, 3, 20, 30);
-//					bwchoiTest3(5, 1, 1, 1, 3, 20, 30);
+					bwchoiTest3(5, 1, 1, 1, 3, 20, 30);
+//					bwchoiTest3(5, 1, 1, 1, 3, 20, 50);
 					
 					/* Set Data Function List End*/
 					
@@ -809,21 +893,43 @@ public class DataService {
 		@Override
 		public void run()
 		{
+			//1000분 기준 1달 : 44
+			int findCount = 0;
+			
+			Calendar calendar = TimeUtils.getCalendar();
+			calendar.setTime(TimeUtils.getCurrentTime());
+			
+			//Set UTC Time
+			calendar.add(Calendar.HOUR, -9);
+			
 			while(true)
 			{
 				try
-				{
-					setCandleMinMap(market, min, count);
+				{	
+					String candleTime = TimeUtils.getTimeToString(calendar.getTime());
+					
+					setCandleMinMap(market, min, count, candleTime);
+					
+					calendar.add(Calendar.MINUTE, -(min*count));
+
+//					if(findCount > 44)
+//						break;
+					
+					findCount++;
+					
+					Thread.sleep(300);
+					
+					//test
 					break;
 				}
 				catch(Exception e)
 				{
-					log.info(String.format("CandleMinRefreshThread Interrupt. market=%s min=%s count=%s \n%s", this.market, this.min, this.count, e.toString()));
+//					log.info(String.format("CandleMinRefreshThread Interrupt. market=%s min=%s count=%s \n%s", this.market, this.min, this.count, e.toString()));
 					try {
 						Thread.sleep(300);
 					} catch (InterruptedException e1) {
 						// TODO Auto-generated catch block
-						e1.printStackTrace();
+//						e1.printStackTrace();
 					}
 				}
 			}

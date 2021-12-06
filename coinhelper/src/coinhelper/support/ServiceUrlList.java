@@ -13,9 +13,9 @@ public class ServiceUrlList {
 		return String.format("%s%s", SERVICE_URL, GET_MARKET_ALL);
 	}
 	
-	public static String getURL_CandleMin(int unit, String market, int count)
+	public static String getURL_CandleMin(int unit, String market, int count, String time)
 	{
-		return String.format("%s%s/%s?market=%s&count=%s", SERVICE_URL, GET_CANDLE_MIN, unit, market, count);
+		return String.format("%s%s/%s?market=%s&count=%s&to=%s", SERVICE_URL, GET_CANDLE_MIN, unit, market, count, time);
 	}
 
 	public static String getURL_ticker(StringBuilder market)

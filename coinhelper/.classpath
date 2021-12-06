@@ -43,5 +43,6 @@
 	<classpathentry kind="lib" path="/coinhelper-env/lib/spring-tx-4.0.3.RELEASE.jar"/>
 	<classpathentry kind="lib" path="/coinhelper-env/lib/spring-web-4.0.3.RELEASE.jar"/>
 	<classpathentry kind="lib" path="/coinhelper-env/lib/spring-webmvc-4.0.3.RELEASE.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/jdom-1.1.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
