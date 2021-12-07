@@ -21,17 +21,19 @@ import org.jdom.Element;
 import org.jdom.output.Format;
 import org.jdom.output.XMLOutputter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
 import coinhelper.object.CandleMin;
 import coinhelper.object.Coin;
 import coinhelper.object.Ticker;
 import coinhelper.support.JsonParserList;
 import coinhelper.support.ServiceUrlList;
-import coinhelper.support.TimeUtils;
+import coinhelper.support.CoinHelperUtils;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.mchange.lang.FloatUtils;
+import com.mchange.lang.IntegerUtils;
 
 public class DataService {
 
@@ -207,21 +209,67 @@ public class DataService {
 					
 					marketElement.addContent(candleMinElement);
 				}
+
+				FileWriter write = new FileWriter(String.format("./data/candleMinData_%s.xml", market));
+				XMLOutputter output = new XMLOutputter();
+				
+				output.setFormat(Format.getPrettyFormat());
+				
+				output.output(doc, write);
+				
+				write.close();
 			}
-			
-			FileWriter write = new FileWriter("D:/log/CoinHelper/candleData.xml");
-			XMLOutputter output = new XMLOutputter();
-			
-			output.setFormat(Format.getPrettyFormat());
-			
-			output.output(doc, write);
-			
-			write.close();
 			
 		}
 		catch(Exception e)
 		{
 			log.error(e);
+		}
+	}
+	
+	public void getCandleMinDataByXML()
+	{
+		for(String market : this.enableCoinList)
+		{
+			Coin coin = this.coinListMap.get(market);
+			if(coin == null)
+			{
+				log.error(String.format("Cannot found Coin. market=%s", market));
+				continue;
+			}
+			
+			String filePath = String.format("./data/candleMinData_%s.xml", market);
+			
+			Document doc = CoinHelperUtils.makeDocumentFilePath(filePath);
+			if(doc == null)
+			{
+				log.info(String.format("Cannot found file. path=%s", filePath));
+				return;
+			}
+			
+			List<CandleMin> candleMinList = Lists.newArrayList();
+			
+			Element marketElement = doc.getRootElement().getChild("market");
+			List<Element> candleMinElementList = marketElement.getChildren();
+			
+			for(Element candleMinElement : candleMinElementList)
+			{
+				CandleMin candle = new CandleMin(market);
+				candle.setCandleDateTimeUTC(candleMinElement.getChild("candleDateTimeUTC").getText());
+				candle.setCandleDateTimeKST(candleMinElement.getChild("candleDateTimeKST").getText());
+				candle.setOpeningPrice(FloatUtils.parseFloat(candleMinElement.getChild("openingPrice").getText()));
+				candle.setHighPrice(FloatUtils.parseFloat(candleMinElement.getChild("highPrice").getText()));
+				candle.setLowPrice(FloatUtils.parseFloat(candleMinElement.getChild("lowPrice").getText()));
+				candle.setTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("tradePrice").getText()));
+				candle.setTimestamp(Long.valueOf(candleMinElement.getChild("timestamp").getText()));
+				candle.setCandleAccTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradePrice").getText()));
+				candle.setCandleAccTradevolume(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradevolume").getText()));
+				candle.setUnit(IntegerUtils.parseInt(candleMinElement.getChild("unit").getText(), 0));
+				
+				candleMinList.add(candle);
+			}
+			
+			coin.setCandleMinList(candleMinList);
 		}
 	}
 	
@@ -848,9 +896,13 @@ public class DataService {
 					
 					/* Set Data Function List Start*/
 					
+					//Data Get By Upbit
 					setCandleMin();
+					//Data Get By xmlFile
+//					getCandleMinDataByXML();
+					
 					log.info(String.format("Candle Set Completed."));
-					createCandleMinDateByXML();
+//					createCandleMinDateByXML();
 
 					//(양봉, 양봉후음봉, 음봉, 음봉, 음봉)
 					//조건 수(5), 양봉율(x%), 양봉이후 음봉율(x%), 음봉율(x%), skip양봉비율(0.x%),익절율(0.x%), 손절율(0.x%)
@@ -896,8 +948,8 @@ public class DataService {
 			//1000분 기준 1달 : 44
 			int findCount = 0;
 			
-			Calendar calendar = TimeUtils.getCalendar();
-			calendar.setTime(TimeUtils.getCurrentTime());
+			Calendar calendar = CoinHelperUtils.getCalendar();
+			calendar.setTime(CoinHelperUtils.getCurrentTime());
 			
 			//Set UTC Time
 			calendar.add(Calendar.HOUR, -9);
@@ -906,21 +958,18 @@ public class DataService {
 			{
 				try
 				{	
-					String candleTime = TimeUtils.getTimeToString(calendar.getTime());
+					String candleTime = CoinHelperUtils.getTimeToString(calendar.getTime());
 					
 					setCandleMinMap(market, min, count, candleTime);
 					
 					calendar.add(Calendar.MINUTE, -(min*count));
 
-//					if(findCount > 44)
-//						break;
+					if(findCount > 44)
+						break;
 					
 					findCount++;
 					
 					Thread.sleep(300);
-					
-					//test
-					break;
 				}
 				catch(Exception e)
 				{

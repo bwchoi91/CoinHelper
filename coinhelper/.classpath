@@ -44,5 +44,8 @@
 	<classpathentry kind="lib" path="/coinhelper-env/lib/spring-web-4.0.3.RELEASE.jar"/>
 	<classpathentry kind="lib" path="/coinhelper-env/lib/spring-webmvc-4.0.3.RELEASE.jar"/>
 	<classpathentry kind="lib" path="/coinhelper-env/lib/jdom-1.1.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/jaybird-2.2.15.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/connector-api-1.5.jar"/>
+	<classpathentry kind="lib" path="/coinhelper-env/lib/HikariCP-3.4.5.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

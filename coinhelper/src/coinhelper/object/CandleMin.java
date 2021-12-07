@@ -42,4 +42,8 @@ public class CandleMin{
 		this.unit = unit;
 	}
 	
+	public CandleMin(String market)
+	{
+		this.market = market;
+	}
 }

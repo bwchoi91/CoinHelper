@@ -9,6 +9,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 
 import coinhelper.config.BeanObjectConfig;
 import coinhelper.service.DataService;
+import coinhelper.support.DataSource;
 
 public class Bootstrap 
 {
@@ -16,7 +17,8 @@ public class Bootstrap
 	public static void main(String[] args) 
 	{
 		try 
-		{ 
+		{
+
 			String jTattoo1 = "com.jtattoo.plaf.smart.SmartLookAndFeel";
 			String jTattoo2 = "com.jtattoo.plaf.mcwin.McWinLookAndFeel";
 			
@@ -33,8 +35,10 @@ public class Bootstrap
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					DataService.get().setCoinListMap();
-					DataService.get().getCoinServiceThread().join();
+//					DataService.get().setCoinListMap();
+//					DataService.get().getCoinServiceThread().join();
+					
+					DataSource.get().connect();
 					
 				} catch (Exception e) {
 					e.printStackTrace();

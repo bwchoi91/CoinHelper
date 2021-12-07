@@ -12,4 +12,6 @@ xmlns:context="http://www.springframework.org/schema/context"
 	<bean id="JsonParserList" class="coinhelper.support.JsonParserList" init-method="init" />
 	<bean id="DataService" class="coinhelper.service.DataService" />
 	
+	<bean id="DataSource" class="coinhelper.support.DataSource" />
+	
 </beans>
