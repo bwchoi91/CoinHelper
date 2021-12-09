@@ -4,6 +4,16 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import javax.persistence.EntityManagerFactory;
+
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.orm.jpa.JpaTransactionManager;
+
+import coinhelper.database.DomainObjectPackageable;
+
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 
@@ -13,9 +23,8 @@ public class DataSource {
 	
 	private static HikariConfig config = new HikariConfig();
 	private static HikariDataSource ds;
-	
 
-	static
+	/*static
 	{
 		String driver = "org.firebirdsql.jdbc.FBDriver";
 		String url = "jdbc:firebirdsql:localhost/3050:D:\\BlueOS\\DB\\CIMPC.FDB?charSet=UTF8";
@@ -30,7 +39,7 @@ public class DataSource {
 		config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 		ds = new HikariDataSource(config);
 		
-	}
+	}*/
 	
 	public DataSource()
 	{
@@ -42,15 +51,16 @@ public class DataSource {
 		return dataSource;
 	}
 	
-	public static Connection getConnection() throws SQLException
+/*	public static Connection getConnection() throws SQLException
 	{
 		return ds.getConnection();
-	}
+	}*/
 
 	public void connect() throws SQLException
 	{
 		
-		getConnection();
+//		getConnection();
+		
 /*		Connection con = null;
 		String driver = "org.firebirdsql.jdbc.FBDriver";
 		String url = "jdbc:firebirdsql:localhost/3050:D:\\BlueOS\\DB\\CIMPC.FDB?charSet=UTF8";

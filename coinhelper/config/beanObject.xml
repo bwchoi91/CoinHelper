@@ -9,9 +9,12 @@ xmlns:context="http://www.springframework.org/schema/context"
 	<context:annotation-config/>
 	<!-- <bean id="ioConLogData" class="loghelper.inMemory.IOConLogData" init-method="init" /> -->
 	
+	<bean id="JpaConfig" class="coinhelper.database.JpaConfig" />
+	
 	<bean id="JsonParserList" class="coinhelper.support.JsonParserList" init-method="init" />
 	<bean id="DataService" class="coinhelper.service.DataService" />
 	
 	<bean id="DataSource" class="coinhelper.support.DataSource" />
+	
 	
 </beans>
