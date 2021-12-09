@@ -2,7 +2,7 @@ package coinhelper.database;
 
 import javax.sql.DataSource;
 
-import org.springframework.context.EnvironmentAware;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
@@ -13,8 +13,7 @@ import com.mchange.lang.IntegerUtils;
 import com.zaxxer.hikari.HikariDataSource;
 
 @Configuration
-@PropertySource({ "file:${db.property}" })
-public class DataSourceConfig implements EnvironmentAware{
+public class DataSourceConfig{
 
 	public final String USER = "jdbc.user";
 	public final String PASSWORD = "jdbc.password";
@@ -26,12 +25,9 @@ public class DataSourceConfig implements EnvironmentAware{
 	public final String IDLE_MAX_AGE_IN_MINUTES = "jdbc.idleMaxAgeInMinutes";
 	public final String INITIAL_POOL_SIZE = "jdbc.initialPoolSize";
 	
+	@Autowired
 	public Environment environment;
 	
-	public void setEnvironment(Environment arg0) {
-		this.environment = environment;
-	}
-
 	@Bean(destroyMethod="close")
 	public DataSource dataSource()
 	{

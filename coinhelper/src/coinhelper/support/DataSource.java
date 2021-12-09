@@ -13,6 +13,7 @@ import org.springframework.context.annotation.PropertySource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 
 import coinhelper.database.DomainObjectPackageable;
+import coinhelper.database.JpaConfig;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -24,6 +25,9 @@ public class DataSource {
 	private static HikariConfig config = new HikariConfig();
 	private static HikariDataSource ds;
 
+	@Autowired
+	public JpaConfig jpaConfig;
+	
 	/*static
 	{
 		String driver = "org.firebirdsql.jdbc.FBDriver";
@@ -58,6 +62,8 @@ public class DataSource {
 
 	public void connect() throws SQLException
 	{
+		
+		jpaConfig.entityManagerFactory();
 		
 //		getConnection();
 		

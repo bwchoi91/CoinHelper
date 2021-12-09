@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.orm.jpa.JpaTransactionManager;
 import org.springframework.orm.jpa.LocalContainerEntityManagerFactoryBean;
 import org.springframework.orm.jpa.vendor.HibernateJpaDialect;
@@ -22,10 +23,8 @@ public class JpaConfig extends OrmConfig
 	@Bean
 	public LocalContainerEntityManagerFactoryBean entityManagerFactory()
 	{
-		if ((packagesToScan == null) || (packagesToScan.length == 0))
-		{
-			log.warn("you define jpa. but you do not define Entity pojo path. so you will do not jpa orm");
-		}
+		String[] ormList = {"coinhelper.orm"};
+		this.setOrmPackagesInfo(ormList);
 		
 		LocalContainerEntityManagerFactoryBean entityManagerFactory = new LocalContainerEntityManagerFactoryBean();
 		entityManagerFactory.setDataSource(this.dataSource());

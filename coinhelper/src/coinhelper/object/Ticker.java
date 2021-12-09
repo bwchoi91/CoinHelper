@@ -1,10 +1,13 @@
 package coinhelper.object;
 
+import javax.persistence.Entity;
+
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@Entity
 public class Ticker {
 	public String market;
 	public String trade_date;

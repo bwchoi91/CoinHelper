@@ -4,7 +4,11 @@ import java.beans.ConstructorProperties;
 import java.util.List;
 import java.util.Queue;
 
+import javax.persistence.Entity;
+
 import org.apache.commons.lang3.StringUtils;
+
+import coinhelper.orm.CandleMin;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.google.common.collect.Lists;
@@ -15,6 +19,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
+@Entity
 public class Coin {
 	
 	//Common

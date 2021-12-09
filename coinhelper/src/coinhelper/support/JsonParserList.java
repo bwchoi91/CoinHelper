@@ -2,9 +2,9 @@ package coinhelper.support;
 
 import java.util.List;
 
-import coinhelper.object.CandleMin;
 import coinhelper.object.Coin;
 import coinhelper.object.Ticker;
+import coinhelper.orm.CandleMin;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 

@@ -23,9 +23,9 @@ import org.jdom.output.XMLOutputter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
-import coinhelper.object.CandleMin;
 import coinhelper.object.Coin;
 import coinhelper.object.Ticker;
+import coinhelper.orm.CandleMin;
 import coinhelper.support.JsonParserList;
 import coinhelper.support.ServiceUrlList;
 import coinhelper.support.CoinHelperUtils;
