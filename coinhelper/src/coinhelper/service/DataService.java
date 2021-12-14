@@ -23,6 +23,7 @@ import org.jdom.output.XMLOutputter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
+import coinhelper.manager.CandleMinManager;
 import coinhelper.object.Coin;
 import coinhelper.object.Ticker;
 import coinhelper.orm.CandleMin;
@@ -43,6 +44,9 @@ public class DataService {
 	
 	@Autowired
 	public JsonParserList jsonParserList;
+
+	@Autowired
+	public CandleMinManager candleMinManager;
 	
 	public Map<String, Coin> coinListMap = Maps.newConcurrentMap();
 	
@@ -153,6 +157,9 @@ public class DataService {
         		
         		coin.addCandleMinList(candleMinList);
         		
+        		//Test
+        		candleMinManager.save(candleMinList);
+        		
         		log.info(String.format("CandleMinList Add Complete. market=%s", market));
 	        }
 		}
@@ -202,7 +209,7 @@ public class DataService {
 					candleMinElement.addContent(new Element("highPrice").setText(String.valueOf(candle.getHighPrice())));
 					candleMinElement.addContent(new Element("lowPrice").setText(String.valueOf(candle.getLowPrice())));
 					candleMinElement.addContent(new Element("tradePrice").setText(String.valueOf(candle.getTradePrice())));
-					candleMinElement.addContent(new Element("timestamp").setText(String.valueOf(candle.getTimestamp())));
+					candleMinElement.addContent(new Element("timestamp").setText(String.valueOf(candle.getLastTickTime())));
 					candleMinElement.addContent(new Element("candleAccTradePrice").setText(String.valueOf(candle.getCandleAccTradePrice())));
 					candleMinElement.addContent(new Element("candleAccTradevolume").setText(String.valueOf(candle.getCandleAccTradevolume())));
 					candleMinElement.addContent(new Element("unit").setText(String.valueOf(candle.getUnit())));
@@ -261,7 +268,7 @@ public class DataService {
 				candle.setHighPrice(FloatUtils.parseFloat(candleMinElement.getChild("highPrice").getText()));
 				candle.setLowPrice(FloatUtils.parseFloat(candleMinElement.getChild("lowPrice").getText()));
 				candle.setTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("tradePrice").getText()));
-				candle.setTimestamp(Long.valueOf(candleMinElement.getChild("timestamp").getText()));
+//				candle.setTimestamp(Long.valueOf(candleMinElement.getChild("timestamp").getText()));
 				candle.setCandleAccTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradePrice").getText()));
 				candle.setCandleAccTradevolume(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradevolume").getText()));
 				candle.setUnit(IntegerUtils.parseInt(candleMinElement.getChild("unit").getText(), 0));
@@ -858,6 +865,8 @@ public class DataService {
 					
 					Thread.sleep(150);
 					
+					//test
+					break;
 				}
 				
 				for(Thread thread : threadList)

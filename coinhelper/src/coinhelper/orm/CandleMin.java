@@ -2,6 +2,8 @@ package coinhelper.orm;
 
 import java.beans.ConstructorProperties;
 import java.io.Serializable;
+import java.util.Calendar;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -16,7 +18,6 @@ import org.apache.commons.lang3.StringUtils;
 @Getter
 @Setter
 @Entity
-@Table
 public class CandleMin implements Serializable{
 
 	@Id
@@ -43,7 +44,7 @@ public class CandleMin implements Serializable{
 	public float tradePrice;
 	
 	@Column
-	public long timestamp;
+	public Date lastTickTime = Calendar.getInstance().getTime();
 	
 	@Column
 	public float candleAccTradePrice;
@@ -67,7 +68,7 @@ public class CandleMin implements Serializable{
 		this.highPrice = highPrice;
 		this.lowPrice = lowPrice;
 		this.tradePrice = tradePrice;
-		this.timestamp = timestamp;
+//		this.timestamp = timestamp;
 		this.candleAccTradePrice = candleAccTradePrice;
 		this.candleAccTradevolume = candleAccTradevolume;
 		this.unit = unit;

@@ -20,7 +20,7 @@ public class JpaConfig extends OrmConfig
 {
 	private static final Logger log = LoggerFactory.getLogger(JpaConfig.class);
 	
-	@Bean
+	@Bean 
 	public LocalContainerEntityManagerFactoryBean entityManagerFactory()
 	{
 		String[] ormList = {"coinhelper.orm"};

@@ -8,11 +8,13 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.BeanFactoryUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.context.annotation.Configuration;
 
 import com.google.common.collect.Lists;
 
 import coinhelper.database.DomainObjectPackageable;
 
+@Configuration
 public class DefaultOrmPackagesConfig implements OrmConfigurer, BeanFactoryAware
 {
 	ListableBeanFactory beanFactory;
