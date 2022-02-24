@@ -36,7 +36,7 @@ public class JsonParser {
 			return this.objectMapper.readValue(s, typeReference);
 		} catch (Exception ex)
 		{
-			System.out.println(ex.toString());
+//			System.out.println(ex.toString());
 		}
 
 		return null;

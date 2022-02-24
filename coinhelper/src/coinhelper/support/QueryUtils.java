@@ -143,7 +143,7 @@ public class QueryUtils {
 		columnNames.delete(columnNames.length() - 2, columnNames.length() -1);
 		columnValues.delete(columnValues.length() - 2, columnValues.length() -1);
 		
-		String test = String.format(INSERT_QUERY, arg.getClass().getSimpleName().toUpperCase(), columnNames, columnValues);
+//		String test = String.format(INSERT_QUERY, arg.getClass().getSimpleName().toUpperCase(), columnNames, columnValues);
 		
 		return String.format(INSERT_QUERY, arg.getClass().getSimpleName().toUpperCase(), columnNames, columnValues);
 	}

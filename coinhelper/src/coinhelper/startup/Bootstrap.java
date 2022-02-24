@@ -28,7 +28,11 @@ public class Bootstrap
 		} 
 		
 		AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(BeanObjectConfig.class);
-		context.registerShutdownHook();
+//		for(String str : context.getBeanDefinitionNames())
+//		{
+//			System.out.println(str);
+//		}
+//		context.registerShutdownHook();
 		
 //		FunctionService.get().getAccount("f41xbtoxO9miB7kXkzZD71Oss3ohrZgm5L1lU3eP", "ucLrePikgeXT7y0bqHEYylxNeg7tA0ilEkq7xxVu");
 

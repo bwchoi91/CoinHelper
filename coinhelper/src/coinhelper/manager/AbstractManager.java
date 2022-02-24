@@ -1,6 +1,5 @@
 package coinhelper.manager;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Map;
@@ -12,18 +11,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import coinhelper.support.QueryUtils;
 
-public class AbstractManager<T> {
+public abstract class AbstractManager<T> {
 	
 	private Logger log = LogManager.getLogger(this.getClass());
 	
 	@Autowired
-	public JdbcTemplate jdbcTemplate;
+	protected JdbcTemplate jdbcTemplate;
+	
+	public AbstractManager()
+	{
+		
+	}
 	
 	protected void insert(T t, BeanPropertyRowMapper<T> rowMapper) throws DataAccessException, IllegalAccessException, IllegalArgumentException, InvocationTargetException
 	{
@@ -38,7 +43,7 @@ public class AbstractManager<T> {
 			this.jdbcTemplate.update(QueryUtils.createUpdateQuery(t));
 		}
 	}
-	protected void insert(List<T> list, BeanPropertyRowMapper<T> rowMapper) throws Exception 
+	protected void insert(List<T> list, RowMapper<T> rowMapper) throws Exception 
 	{
 		try
 		{
@@ -48,11 +53,18 @@ public class AbstractManager<T> {
 				return;
 			}
 			
-			List<T> existRowList = this.existRowList(list, rowMapper);
+			//bwchoi 이거 조건이 기니깐 에러발생
+			/*List<T> existRowList = this.existRowList(list, rowMapper);
 			if(existRowList == null || existRowList.isEmpty())
 			{
 				this.batchInsert(list);
 			}
+			else
+			{
+				log.error("Already exist DB Data");
+			}*/
+			
+			this.batchInsert(list);
 		}
 		catch(Exception e)
 		{
@@ -71,9 +83,9 @@ public class AbstractManager<T> {
 			sqls[indexer] = QueryUtils.createInsertQuery(obj);
 			sb.append(sqls[indexer++]).append("\n");
 		}
-			
+
 		this.batchUpdate(sqls);
-		log.debug(sb);
+//		log.debug(sb); 
 	}
 	
 	private void batchUpdate(String[] arguments) throws Exception
@@ -93,7 +105,7 @@ public class AbstractManager<T> {
 		}
 	}
 	
-	protected boolean isNotExistRow(T t, BeanPropertyRowMapper<T> rowMapper) throws IllegalArgumentException, IllegalAccessException
+	protected boolean isNotExistRow(T t, RowMapper<T> rowMapper) throws IllegalArgumentException, IllegalAccessException
 	{
 		StringBuilder sb = QueryUtils.createSelectQueryPrimaryColumn(t);
 		List<T> list = this.jdbcTemplate.query(sb.toString(), rowMapper);
@@ -105,7 +117,7 @@ public class AbstractManager<T> {
 		return false;
 	}
 	
-	protected List<T> existRowList(List<T> list, BeanPropertyRowMapper<T> rowMapper) throws IllegalArgumentException, IllegalAccessException
+	protected List<T> existRowList(List<T> list, RowMapper<T> rowMapper) throws IllegalArgumentException, IllegalAccessException
 	{
 		if(list.isEmpty())
 		{
@@ -170,8 +182,9 @@ public class AbstractManager<T> {
 		}
 		
 		sb.delete(sb.length() - 4, sb.length());
-
+		
 		log.info(sb);
+		
 		return this.jdbcTemplate.query(sb.toString(), rowMapper);
 	}
 

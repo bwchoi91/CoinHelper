@@ -139,11 +139,23 @@ public class DataService {
 			
 	        HttpGet request = new HttpGet(ServiceUrlList.getURL_CandleMin(min, market, count, time));
 	        request.setHeader("Accept", "application/json");
-	        
-	        HttpResponse response = client.execute(request);
-	        HttpEntity entity = response.getEntity();
 
-			Object object = this.jsonParserList.stringToObject_candleMinParser(new String(EntityUtils.toByteArray(entity), "UTF-8"));
+	        Object object = null;
+	        while(true)
+	        {
+		        HttpResponse response = client.execute(request);
+		        HttpEntity entity = response.getEntity();
+		        
+		        String entityStr = new String(EntityUtils.toByteArray(entity), "UTF-8");
+	//	        entityStr = StringUtils.replace(entityStr, "timestamp", "timestamps");
+	
+				object = this.jsonParserList.stringToObject_candleMinParser(entityStr);
+				
+				if(object != null)
+					break;
+				
+				Thread.sleep(500);
+	        }
 	        
 	        List<CandleMin> candleMinList = (List<CandleMin>) object;
 	        
@@ -157,15 +169,14 @@ public class DataService {
         		
         		coin.addCandleMinList(candleMinList);
         		
-        		//Test
-        		candleMinManager.save(candleMinList);
-        		
         		log.info(String.format("CandleMinList Add Complete. market=%s", market));
+        		
+        		this.updateCandleMinDataDB(candleMinList);
 	        }
 		}
 		catch(Exception e)
 		{
-			log.info(String.format("%s Error.\n%s", this.getClass().getEnclosingMethod().getName(), e.toString()));
+			log.info(String.format("%s Error.\n%s", "Data Get Error", e.toString()));
 		}
 	}
 	
@@ -209,7 +220,7 @@ public class DataService {
 					candleMinElement.addContent(new Element("highPrice").setText(String.valueOf(candle.getHighPrice())));
 					candleMinElement.addContent(new Element("lowPrice").setText(String.valueOf(candle.getLowPrice())));
 					candleMinElement.addContent(new Element("tradePrice").setText(String.valueOf(candle.getTradePrice())));
-					candleMinElement.addContent(new Element("timestamp").setText(String.valueOf(candle.getLastTickTime())));
+//					candleMinElement.addContent(new Element("timestamp").setText(String.valueOf(candle.getTimestamp())));
 					candleMinElement.addContent(new Element("candleAccTradePrice").setText(String.valueOf(candle.getCandleAccTradePrice())));
 					candleMinElement.addContent(new Element("candleAccTradevolume").setText(String.valueOf(candle.getCandleAccTradevolume())));
 					candleMinElement.addContent(new Element("unit").setText(String.valueOf(candle.getUnit())));
@@ -261,19 +272,19 @@ public class DataService {
 			
 			for(Element candleMinElement : candleMinElementList)
 			{
-				CandleMin candle = new CandleMin(market);
-				candle.setCandleDateTimeUTC(candleMinElement.getChild("candleDateTimeUTC").getText());
-				candle.setCandleDateTimeKST(candleMinElement.getChild("candleDateTimeKST").getText());
-				candle.setOpeningPrice(FloatUtils.parseFloat(candleMinElement.getChild("openingPrice").getText()));
-				candle.setHighPrice(FloatUtils.parseFloat(candleMinElement.getChild("highPrice").getText()));
-				candle.setLowPrice(FloatUtils.parseFloat(candleMinElement.getChild("lowPrice").getText()));
-				candle.setTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("tradePrice").getText()));
-//				candle.setTimestamp(Long.valueOf(candleMinElement.getChild("timestamp").getText()));
-				candle.setCandleAccTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradePrice").getText()));
-				candle.setCandleAccTradevolume(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradevolume").getText()));
-				candle.setUnit(IntegerUtils.parseInt(candleMinElement.getChild("unit").getText(), 0));
+//				CandleMin candle = new CandleMin(market);
+//				candle.setCandleDateTimeUTC(candleMinElement.getChild("candleDateTimeUTC").getText());
+//				candle.setCandleDateTimeKST(candleMinElement.getChild("candleDateTimeKST").getText());
+//				candle.setOpeningPrice(FloatUtils.parseFloat(candleMinElement.getChild("openingPrice").getText()));
+//				candle.setHighPrice(FloatUtils.parseFloat(candleMinElement.getChild("highPrice").getText()));
+//				candle.setLowPrice(FloatUtils.parseFloat(candleMinElement.getChild("lowPrice").getText()));
+//				candle.setTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("tradePrice").getText()));
+////				candle.setTimestamp(Long.valueOf(candleMinElement.getChild("timestamp").getText()));
+//				candle.setCandleAccTradePrice(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradePrice").getText()));
+//				candle.setCandleAccTradevolume(FloatUtils.parseFloat(candleMinElement.getChild("candleAccTradevolume").getText()));
+//				candle.setUnit(IntegerUtils.parseInt(candleMinElement.getChild("unit").getText(), 0));
 				
-				candleMinList.add(candle);
+//				candleMinList.add(candle);
 			}
 			
 			coin.setCandleMinList(candleMinList);
@@ -814,6 +825,20 @@ public class DataService {
 		return isSell;
 	}
 	
+	public void updateCandleMinDataDB(List<CandleMin> candleMinList)
+	{
+		try
+		{
+			this.candleMinManager.save(candleMinList);
+			
+			log.info(String.format("CandleMinData Update Completed. market=%s", candleMinList.get(0).getMarket()));
+		}
+		catch(Exception e)
+		{
+			log.error(e);
+		}
+	}
+	
 	public class CoinServiceThread implements Runnable
 	{
 		public int cycleTime = 1;
@@ -845,6 +870,10 @@ public class DataService {
 			}
 		}
 		
+		
+		/**
+		 * CandleMin
+		 */
 		public void setCandleMin()
 		{
 			String errMaeket = StringUtils.EMPTY;
@@ -873,17 +902,6 @@ public class DataService {
 				{
 					thread.join();
 				}
-				
-				// Test Logging
-				/*for(String market : enableCoinList)
-				{
-					Coin coin = coinListMap.get(market);
-					int count = 0;
-					for(CandleMin candle : coin.getCandleMinList())
-					{
-						log.info(String.format("market=%s time=%s count=%s", candle.getMarket(), candle.getCandleDateTimeKST(), count++));
-					}
-				}*/
 			}
 			catch(Exception e)
 			{
@@ -972,13 +990,15 @@ public class DataService {
 					setCandleMinMap(market, min, count, candleTime);
 					
 					calendar.add(Calendar.MINUTE, -(min*count));
-
+					
 					if(findCount > 44)
+					{
+//						updateCandleMinDataDB(market);
 						break;
-					
+					}
 					findCount++;
-					
-					Thread.sleep(300);
+					//test
+//					Thread.sleep(1000);
 				}
 				catch(Exception e)
 				{
