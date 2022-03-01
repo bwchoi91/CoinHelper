@@ -10,7 +10,6 @@ import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 @Configuration
-//@ComponentScan(basePackages={"kr.aimframework.core.data.hibernate"})
 @EnableTransactionManagement
 public class HibernateConfig extends OrmConfig
 {
